@@ -17,7 +17,7 @@ subplot(3,2,3); hold on;
 plot(times,xnomTraj(3,:)*180/pi,'--');
 plot(times,xTraj(3,:)*180/pi);
 xlabel('Time (s)')
-ylabel('\phi (deg)')
+ylabel('Phi (deg)')
 
 subplot(3,2,4); hold on;
 plot(times,xnomTraj(4,:),'--');
@@ -35,7 +35,7 @@ subplot(3,2,6); hold on;
 plot(times,xnomTraj(6,:)*180/pi,'--');
 plot(times,xTraj(6,:)*180/pi);
 xlabel('Time (s)')
-ylabel('\dot{\phi} (deg/s)')
+ylabel('Phi rate (deg/s)')
 
 %% u vs. u_nom
 figure;
@@ -52,34 +52,42 @@ xlabel('Time (s)');
 ylabel('CLF QP slack');
 
 %% Error norm
-% w_max here is actually max(Bw*w)
+% controller.cp_quantile here is actually max(Bw*w)
+max_slack = max(slackTraj);
 figure;
 plot(times, vecnorm(xnomTraj - xTraj,2,1)); hold on
-if controller.type == "CCM"
+if controller.use_cp == false
+    % ignore the slack since it shouldn't have been needed
     plot(times, sqrt(controller.w_upper/controller.w_lower) * norm(xnomTraj(:,1) - xTraj(:,1)) * exp(-controller.lambda.*times) ...
-        + sqrt(controller.w_upper/controller.w_lower)*w_max/controller.lambda * (1-exp(-controller.lambda.*times)));
-elseif controller.type == "CRCCM"
+        + sqrt(controller.w_upper/controller.w_lower)*controller.cp_quantile/controller.lambda * (1-exp(-controller.lambda.*times)));
+    legend('actual','og upper bound');
+else
     plot(times, sqrt(controller.w_upper/controller.w_lower * norm(xnomTraj(:,1) - xTraj(:,1))^2 * exp(-2*controller.lambda.*times) ...
-    + controller.epsilon^2/2*controller.w_upper * (1-exp(-2*controller.lambda.*times))) );
+    + 2*max_slack*controller.w_upper * (1-exp(-2*controller.lambda.*times))) ); hold on
+    %
+    plot(times, sqrt(controller.w_upper/controller.w_lower) * norm(xnomTraj(:,1) - xTraj(:,1)) * exp(-controller.lambda.*times) ...
+        + sqrt(controller.w_upper/controller.w_lower)*controller.cp_quantile/controller.lambda * (1-exp(-controller.lambda.*times)));
+    legend('actual','tightened upper bound', 'og upper bound');
 end
 xlabel('Time (s)');
 ylabel('||x||_2');
-legend('actual','upper bound');
+
 grid on
 
 %% Riemannian distance
 figure;
 plot(times, sqrt(energyTraj)); hold on
-if controller.type == "CCM"
+if controller.use_cp == false
     plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
-        + w_max/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times)));
-    legend("actual", "upper bound");
-elseif controller.type == "CRCCM"
+        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times)));
+    legend("actual", "og upper bound");
+else
     plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
-        + w_max/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times))); hold on
+        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times))); hold on
+    %
     plot(times, sqrt(energyTraj(1) * exp(-2*controller.lambda.*times) ...
-        + (1-exp(-2*controller.lambda.*times)) * controller.epsilon^2/2));
-    legend("actual", "upper bound", "tightened upper bound")
+        + (1-exp(-2*controller.lambda.*times)) * 2*max_slack));
+    legend("actual", "og upper bound", "tightened upper bound")
 end
 ylim([0,inf]);
 xlabel('Time (s)');
@@ -96,4 +104,5 @@ scatter(xnomTraj(1,end),xnomTraj(2,end),'b*')
 scatter(xTraj(1,end),xTraj(2,end),'r*')
 xlabel('x (m)')
 ylabel('z (m)')
-legend('Nominal', "CCM");
+legend('Nominal', "actual");
+grid on
