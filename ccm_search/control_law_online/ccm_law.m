@@ -1,17 +1,23 @@
 function [uc, Erem, slack]= ccm_law(t,x_nom,u_nom,x,plant,controller)
 geodesic = controller.geodesic; 
-n = plant.n; 
-N = geodesic.N; 
-D = geodesic.D; 
+n = plant.n;
+nu = plant.nu; %size(plant.B,2);
+N = geodesic.N;
+D = geodesic.D;
 
-%w_nom = controller.w_nom; % used for the rccm case
-%u = u_nom;
+persistent t_pre beq_pre copt_pre Erem_pre
+if isempty(t_pre) || (t == 0)
+    t_pre = -3;
+    beq_pre = zeros(2*n,1);
+    copt_pre = zeros(n*(D+1),1);
+    Erem_pre = Inf;
+end
 
 % get the initial value of c corresponding to a straight line
 c0 = zeros(n*(D+1),1);
-i = 1:n;    
+i = 1:n;
 c0((i-1)*(D+1)+1,1) = x_nom;
-c0((i-1)*(D+1)+2,1) = x - x_nom; 
+c0((i-1)*(D+1)+2,1) = x - x_nom;
 
 if isempty(geodesic.nlprob) 
     % indicates that the geodesic is (assumed to be) a straight line    
@@ -27,11 +33,19 @@ if isempty(geodesic.nlprob)
 else
     beq = [x_nom;x];
 
-    geodesic.nlprob.beq = beq;
-    geodesic.nlprob.x0 = c0;
-    [copt,Erem,exitflag,info] = fmincon(geodesic.nlprob);
-    if exitflag<0
-        disp('geodesic optimization problem failed!');
+    if norm(beq-beq_pre)<1e-8 && ~isinf(Erem_pre)
+        copt = copt_pre;
+        Erem = Erem_pre;
+    else
+        geodesic.nlprob.beq = beq;
+        geodesic.nlprob.x0 = c0;
+        [copt,Erem,exitflag,info] = fmincon(geodesic.nlprob);
+        if exitflag < 0
+            disp('geodesic optimization problem failed!');
+        end
+        beq_pre = beq;
+        copt_pre = copt;
+        Erem_pre = Erem;
     end
         
     % vectorized format (more computationally efficient)
@@ -58,20 +72,17 @@ else
 end
 
 plant_fx = plant.f_fcn(x);
-plant_fx_nom =  plant.f_fcn(x_nom);
+plant_fx_nom = plant.f_fcn(x_nom);
 plant_Bx = plant.B_fcn(x);
 plant_Bx_nom = plant.B_fcn(x_nom);
 plant_Bwx = plant.Bw_fcn(x);
 
-nu = size(plant.B,2);
-
 weight_input = 1;
-weight_slack = 2;
+weight_slack = 100;
 H = [weight_input * eye(nu), zeros(nu, 1);
     zeros(1, nu), weight_slack];
 
 if isfield(controller,'use_generated_code') && controller.use_generated_code == 1 && ~isempty(geodesic.nlprob)
-    % TODO
     u = compute_u_ccm_mex(x, x_nom, u_nom, Erem, gamma_s, ...
                           H, controller.lambda, int8(controller.use_cp), controller.cp_quantile, ...
                           plant_fx, plant_fx_nom, plant_Bx, plant_Bx_nom, plant_Bwx);
@@ -114,7 +125,7 @@ else
     else
         denom = A*inv(H)*A';
         if denom < 1e-8
-            lambda = 0;
+            lambda = 0; % this might not be needed as the last entry of A is -1
         else
             lambda = 2*B/(A*inv(H)*A');
         end
@@ -122,7 +133,10 @@ else
     u = -1/2 * lambda * inv(H)' * A';
     uc = u_nom + u(1:nu);
     slack = u(end);
+end
 
+if (t-t_pre>= 0.4) && mod(t,1)< 0.1
+    t_pre = t;
 end
 
 end

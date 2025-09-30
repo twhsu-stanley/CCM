@@ -22,12 +22,6 @@ controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4];
 
-% if controller.type == "CRCCM"
-%     controller.epsilon = 1; % for the completion-of-squares
-%     controller.cp_quantile = 1;
-%     controller.eta = 2/controller.epsilon^2 / controller.W_lower_bound * controller.cp_quantile^2;
-% end
-
 % State constraints imposed when searching CCM
 consider_state_set = 1; % whether to consider a compact set for the states when formulating the constraints
 p_lim = pi/3;  % phi
@@ -57,12 +51,8 @@ W = zeros(n);
 for i = 1:n_monos_W
     W = W + W_coef(:,:,i) * v_W(i);
 end
-if controller.type == "CCM" %|| controller.type == "CRCCM"
-    dv_W_dt = dv_W_dx*f(Wstates_index);
-% elseif controller.type == "RCCM"
-%     % dv_W_dt could depend on w
-%     dv_W_dt = dv_W_dx*(f(Wstates_index)+Bw(Wstates_index)*w);
-end
+
+dv_W_dt = dv_W_dx*f(Wstates_index);
 
 dW_dt = zeros(n);
 for i = 1:n_monos_W
@@ -78,11 +68,8 @@ state_set.W_states_index = Wstates_index;
 %controller.lambda = lambda;
 paras_W = W_coef(:);
 
-if controller.type == "CCM"
-    [cond_num_W,w_upper,w_lower,W_bar,max_res] = ccm(plant,controller,W,dW_dt,paras_W,lambda,state_set);
-% elseif controller.type == "CRCCM"
-%     [cond_num_W,w_upper,w_lower,W_bar,max_res] = crccm(plant,controller,W,dW_dt,paras_W,lambda,state_set);
-end
+[cond_num_W,w_upper,w_lower,W_bar,max_res] = ccm(plant,controller,W,dW_dt,paras_W,lambda,state_set);
+
 controller.w_upper = w_upper;
 controller.w_lower = w_lower;
 controller.W_bar = W_bar;
@@ -159,11 +146,7 @@ compute_tubes;
 
 %% Save data
 if save_rsts == 1
-    if controller.type == "CCM"
-        file_name = ['ccm_' num2str(controller.lambda) '.mat'];
-    % elseif controller.type == "CRCCM"
-    %     file_name = ['crccm_' num2str(controller.lambda) '_epsilon_' num2str(controller.epsilon) '.mat'];
-    end
+    file_name = ['ccm_' num2str(controller.lambda) '.mat'];
     save(file_name,'plant','controller','state_set');
 end
 
