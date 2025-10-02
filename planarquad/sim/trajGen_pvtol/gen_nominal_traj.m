@@ -1,8 +1,8 @@
-file_traj = 'nomTraj';
+
 if sim_config.include_obs == 0
     file_traj = ['nomTraj' '.mat']; 
 elseif sim_config.include_obs == 1
-    file_traj = ['nomTraj_w_obs_' file_controller];    
+    file_traj = ['nomTraj_w_obs_rccm_1.4_wmax_1_plim_0.33pi.mat'];    
 end
 if sim_config.replan_nom_traj == 1
     trajGen_config.x0 = x0;

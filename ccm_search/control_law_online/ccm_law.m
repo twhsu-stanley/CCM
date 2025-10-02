@@ -78,7 +78,7 @@ plant_Bx_nom = plant.B_fcn(x_nom);
 plant_Bwx = plant.Bw_fcn(x);
 
 weight_input = 1;
-weight_slack = 100;
+weight_slack = 1000;
 H = [weight_input * eye(nu), zeros(nu, 1);
     zeros(1, nu), weight_slack];
 

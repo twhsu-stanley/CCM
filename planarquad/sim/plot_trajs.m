@@ -82,12 +82,13 @@ if controller.use_cp == false
         + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times)));
     legend("actual", "og upper bound");
 else
-    plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
-        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times))); hold on
-    %
     plot(times, sqrt(energyTraj(1) * exp(-2*controller.lambda.*times) ...
         + (1-exp(-2*controller.lambda.*times)) * 2*max_slack));
-    legend("actual", "og upper bound", "tightened upper bound")
+    %
+    plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
+        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times))); hold on
+
+    legend("actual","tightened upper bound", "og upper bound")
 end
 ylim([0,inf]);
 xlabel('Time (s)');

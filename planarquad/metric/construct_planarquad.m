@@ -4,7 +4,7 @@ plant.m = 0.486;    % (m) mass of the quad rotor
 plant.J = 0.00383;  % (kgm^2), moment of inertia
 n = 6;              % #states
 nu =2;              % #inputs 
-nw = 1;             % #disturbances
+nw = 6;             % #disturbances
 
 x = sdpvar(n,1); 
 x_store = x;
@@ -35,12 +35,14 @@ f_fcn = @(x) [x(4,:).*cos(x(3,:)) - x(5,:).*sin(x(3,:));    %px
 B = [zeros(4,2); 1/plant.m 1/plant.m; plant.l/plant.J -plant.l/plant.J]; 
 B_perp = [eye(4); zeros(2,4)];
 
-Bw = [zeros(1,3),cosx(x(3)),-sinx(x(3)),0]';
-Bw_fcn = @(x)[zeros(1,3),cos(x(3)),-sin(x(3)),0]';
+%Bw = [zeros(1,3),cosx(x(3)),-sinx(x(3)),0]';
+%Bw_fcn = @(x)[zeros(1,3),cos(x(3)),-sin(x(3)),0]';
+Bw = eye(n);
+Bw_fcn = @(x) eye(n);
 
 df_dx = jacobian(f,x);
-dBw_dx = jacobian(Bw,x);
-A = df_dx + dBw_dx*w;
+%dBw_dx = jacobian(Bw,x);
+%A = df_dx;% + dBw_dx*w;
 
 f_phi_fcn = @(x) x(6);
 f_vx_fcn = @(x) x(6)*x(5)-plant.g*sin(x(3));
@@ -55,21 +57,21 @@ Bw_vx_approx_fcn = @(x) cosx(x(3));
 x = x_store;
 s = sdisplay(f);
 s2 = sdisplay(df_dx);
-s3 = sdisplay(dBw_dx);
+%s3 = sdisplay(dBw_dx);
 syms x [n 1]
 syms f_approx_fcn [n 1]
 syms df_dx_approx_fcn [n n]
-syms dBw_dx_approx_fcn [n n]
+%syms dBw_dx_approx_fcn [n n]
 for i=1:n    
     f_approx_fcn(i,1) = eval(s{i});    
     for j=1:n
         df_dx_approx_fcn(i,j) = eval(s2{i,j});
-        dBw_dx_approx_fcn(i,j) =eval(s3{i,j}); 
+        %dBw_dx_approx_fcn(i,j) =eval(s3{i,j}); 
     end
 end
 f_approx_fcn = matlabFunction(f_approx_fcn,'Vars',{x});
 df_dx_approx_fcn = matlabFunction(df_dx_approx_fcn,'Vars',{x});
-dBw_dx_approx_fcn = matlabFunction(dBw_dx_approx_fcn,'Vars',{x});
+%dBw_dx_approx_fcn = matlabFunction(dBw_dx_approx_fcn,'Vars',{x});
 x = x_store;
 %-------------------------------------------------------------------------
 
@@ -77,7 +79,7 @@ plant.sinx = sinx;
 plant.cosx = cosx;
 plant.df_dx = df_dx;
 plant.f_fcn = f_fcn;
-plant.A = A;
+%plant.A = A;
 plant.B = B;
 plant.B_fcn = @(x) B;
 plant.dynamics = @(x,u) f_fcn(x)+ B*u;

@@ -1,56 +1,54 @@
 clc;
 clear;
 close all
-addpath trajGen_pvtol trajGen_pvtol/nominal_trajs
+addpath trajGen_pvtol trajGen_pvtol/nominal_trajs 
 addpath('../metric');
+addpath('../utilities');
 
 %% Simulation settings
-file_controller = '../metric/ccm_1.mat'; % CCM
+file_controller = '../metric/ccm_0.8.mat'; % CCM
 load(file_controller);
 
-w_max = 1; %state_set.w_lim;     % maximum amplitude of wind disturbance
-
 controller.use_cp = false; %true; % whether to implement the constraint tightening in the CRCLF-QP
-controller.cp_quantile = w_max;
 
-sim_config.include_tube = 1;        % whether to tighten the state bounds in planning a nominal trajectory
-sim_config.tight_input_bnd = 1;     % whether to tighten the input bounds in planning a nominal trajectory
-sim_config.include_obs = 0;         % whether to include the obstacles
+sim_config.include_obs = 1;         % whether to include the obstacles
 sim_config.include_dist = 1;        % include the disturbance  
-sim_config.save_sim_rst = 0;        % whether to save simulation results
-sim_config.replan_nom_traj = 0;     % whether to replan a trajectory
+sim_config.replan_nom_traj = 0;     % whether to replan a trajectory **1 doesn't work
 sim_config.dt_sim = 1/100;
-%sim_config.duration = 1;           % sim duration; only used when sim_config.replan_nom_traj == 1
 use_generated_code = 0;             % whether to use the generated codes for simulations: using generated codes can accelerate by at least one fold
 
 n = 6;
 nu = 2;
-x0 = zeros(6,1);                  % initial state
-xF = [5 5 0 0 0 0]';              % final state
-umax = 3*plant.m*plant.g;         % control limit
-% ----- bounds for input and states for using OptimTraj to plan trajs.-----
-u_bnd = [0 0; umax umax]';
-x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
-          inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
+x0 = zeros(6,1);                   % initial state
 
-% Wind disturbance settings -------------------------
-T_w = 1;                           % period of disturbance
-dist_config.sim_config.include_dist = sim_config.include_dist;
-dist_config.w_max = w_max;
-dist_config.T_w = T_w;
-dist_config.gen_dist= @(t) w_max*(0.8+0.2*sin(2*pi/dist_config.T_w.*t));
+% The following are only needed if replan_nom_traj == 1, which doesn't work now
+% sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
+% sim_config.tight_input_bnd = 0;    % whether to tighten the input bounds in planning a nominal trajectory
+% sim_config.duration = 2;           % sim duration
+% xF = [5 5 0 0 0 0]';              % final state
+% umax = 3*plant.m*plant.g;         % control limit
+% u_bnd = [0 0; umax umax]';
+% x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
+%           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
-if ~isfield(controller,'tube_gain_u')
-    controller.tube_gain_u = controller.u_bnd/state_set.w_lim;
-end
-tube_u = controller.tube_gain_u*w_max;
+% Disturbance settings 
+dist_config.include_dist = sim_config.include_dist;
+dist_config.gen_dist = @(t) [-0.5 + 0.8*sin(2*pi/1*t);
+                             0.5 + 0.8*cos(2*pi/2*t + 0.03);
+                             0.5 + 0.4*sin(2*pi/3*t + 0.01);
+                             0.5 + 0.2*cos(2*pi/1*t + 0.04);
+                             0.7 + 0.1*sin(2*pi/4*t + 0.01);
+                             0.2 + 0.5*cos(2*pi/5*t + 0.05);];
 
-if w_max > 1
-    warning('RCCM controllers were not designed for such larger disturbance!');
+w_norm_max = 0;
+for t = 1:0.01:10
+    w_norm = norm(dist_config.gen_dist(t));
+    if w_norm > w_norm_max
+        w_norm_max = w_norm;
+    end
 end
-if sim_config.tight_input_bnd == 1
-    u_bnd = u_bnd + [0 0; -tube_u -tube_u]';    
-end
+w_max = w_norm_max;
+controller.cp_quantile = w_max;
 
 %% Plan or load a nominal trajecotory 
 addpath('C:\ACXIS Code\OptimTraj');
@@ -64,7 +62,7 @@ controller.use_generated_code = use_generated_code;
 lambda = controller.lambda;
 %  problem setting for geodesic computation
 D = 2;      % degree of the polynomial
-N = D + 6;    % stopping index for the CGL (Chebyshev-Gauss-Lobatto) nodes: #nodes N+1
+N = D + 6;  % stopping index for the CGL (Chebyshev-Gauss-Lobatto) nodes: #nodes N+1
 
 % --------------- re-generate the code is necessary after change of ------
 % controller or geodesic optimization settings: remember to re-generate the
@@ -82,7 +80,6 @@ if controller.use_generated_code
     end
 end
 controller.geodesic = set_opt_prob_for_geodesic_computation(n,D,N,controller);
-
 controller.geodesic.nlprob = []; % setting geodesic.nlprob to [] indicates that the geodesic will be approximated by a straight line
 
 %% Simulation
@@ -97,7 +94,7 @@ slackTraj = zeros(1, T_steps);
 xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
-x0 = x0 + [-1;0;0;0;0;0];
+x0 = x0 + [-0;0;0;0;0;0];
 
 % Initialization
 t = times(1);
@@ -126,7 +123,7 @@ for i = 1:T_steps
     % Propagate state with zero-hold for control inputs
     if i < T_steps
         %[t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, wt, plant), [times(i) times(i+1)], x, options);
-        [t_plus, xa_plus] = ode23(@(t,xa) planarquad_dyn(t,xa, plant, controller, dist_config), [times(i) times(i+1)], xa, options);
+        [t_plus, xa_plus] = ode23s(@(t,xa) planarquad_dyn(t,xa, plant, controller, dist_config), [times(i) times(i+1)], xa, options);
         xa = xa_plus(end,:)';
     end
 
@@ -142,7 +139,7 @@ else
     file_name = 'sim_ccm';
 end
 file_name = [file_name '_lambda_' num2str(controller.lambda,2)];
-if dist_config.sim_config.include_dist == 1
+if dist_config.include_dist == 1
     file_name = [file_name '_wmax_' num2str(w_max)];
 end
 
@@ -167,10 +164,10 @@ ud = controller.u_nom_fcn(t);
 
 [uc, Erem, slack] = ccm_law(t, xd, ud, x, plant, controller);
 
-if dist_config.sim_config.include_dist == 1
+if dist_config.include_dist == 1
         wt = dist_config.gen_dist(t);
     else
-        wt = 0;
+        wt = zeros(n,1);
 end
 
 dxdt = plant.f_fcn(x) + plant.B_fcn(x) * uc + plant.Bw_fcn(x) * wt;
