@@ -1,0 +1,13 @@
+LIBRARY compute_u_ccm.mexw64
+EXPORTS
+mexFunction
+mexfilerequiredapiversion
+emlrtMexFcnProperties
+compute_u_ccm
+compute_u_ccm_initialize
+compute_u_ccm_terminate
+compute_u_ccm_atexit
+b_sprintf
+emlrt_marshallIn
+b_emlrt_marshallIn
+s_emlrt_marshallIn

@@ -1,4 +1,4 @@
-function [uc, Erem, slack]= ccm_law(t,x_nom,u_nom,x,plant,controller)
+function [uc, Erem, slack, gmb]= ccm_law(t,x_nom,u_nom,x,plant,controller)
 geodesic = controller.geodesic; 
 n = plant.n;
 nu = plant.nu; %size(plant.B,2);
@@ -78,9 +78,10 @@ plant_Bx_nom = plant.B_fcn(x_nom);
 plant_Bwx = plant.Bw_fcn(x);
 
 weight_input = 1;
-weight_slack = 1000;
+weight_slack = 5;
 H = [weight_input * eye(nu), zeros(nu, 1);
-    zeros(1, nu), weight_slack];
+     zeros(1, nu), weight_slack];
+%H = weight_input * eye(nu); % no slack
 
 if isfield(controller,'use_generated_code') && controller.use_generated_code == 1 && ~isempty(geodesic.nlprob)
     u = compute_u_ccm_mex(x, x_nom, u_nom, Erem, gamma_s, ...
@@ -101,6 +102,7 @@ else
 
     gamma_s1_Mx = gamma_s(:,end)'/controller.W_fcn(x);
     A = [gamma_s1_Mx * plant_Bx, -1];
+    %A = [gamma_s1_Mx * plant_Bx]; % no slack
     B = gamma_s1_Mx * (plant_fx + plant_Bx * u_nom) ...
         - gamma_s(:,1)'/controller.W_fcn(x_nom) * (plant_fx_nom + plant_Bx_nom * u_nom) ...
         + controller.lambda * Erem ...
@@ -124,15 +126,20 @@ else
         lambda = 0;
     else
         denom = A*inv(H)*A';
-        if denom < 1e-8
-            lambda = 0; % this might not be needed as the last entry of A is -1
+        if denom < 1e-9
+            lambda = 0;
         else
-            lambda = 2*B/(A*inv(H)*A');
+            lambda = 2*B/denom;
         end
     end
     u = -1/2 * lambda * inv(H)' * A';
     uc = u_nom + u(1:nu);
     slack = u(end);
+    % if slack > sigma_max * controller.cp_quantile * sqrt(Erem) * controller.use_cp
+    %     warning("slack too large");
+    % end
+    %gmb = norm(A(1:nu));
+    gmb = sigma_max * controller.cp_quantile * sqrt(Erem) * controller.use_cp;
 end
 
 if (t-t_pre>= 0.4) && mod(t,1)< 0.1

@@ -1,0 +1,9 @@
+LIBRARY RiemannEnergy1.mexw64
+EXPORTS
+mexFunction
+mexfilerequiredapiversion
+emlrtMexFcnProperties
+RiemannEnergy1
+RiemannEnergy1_initialize
+RiemannEnergy1_terminate
+RiemannEnergy1_atexit
