@@ -6,12 +6,12 @@ addpath('../metric');
 addpath('../../utilities');
 
 %% Simulation settings
-file_controller = '../metric/ccm_0.7.mat'; % CCM
+file_controller = '../metric/ccm_0.7.mat'; % uCCM
 load(file_controller);
 
 sim_config.include_obs = 0;         % whether to include the obstacles  
 sim_config.replan_nom_traj = 0;     % whether to replan a trajectory **1 doesn't work
-sim_config.dt_sim = 0.001;
+sim_config.dt_sim = 0.01;
 
 n = 6;
 nu = 2;
@@ -23,9 +23,11 @@ controller.x_nom_fcn = x_nom_fcn;
 controller.u_nom_fcn = u_nom_fcn;
 
 %% Set uncertainty parameter: a
-a = 0.4;
+a = 0.1;
 controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
+
+plant.dynamics = @(x,u) plant.dynamics(x,u,a);
 
 %% Formulate the NLP problem for geodesic computation
 lambda = controller.lambda;
@@ -48,7 +50,7 @@ xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
-x0 = [0.2;0.1;0;0;0;0];
+x0 = [0.5;0.5;0;0;0;0];
 x = x0;
 
 options = odeset('RelTol',1e-2);

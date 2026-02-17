@@ -71,43 +71,41 @@ else
     %}
 end
 
-plant_fx = plant.f_fcn(x);
-plant_fx_nom = plant.f_fcn(x_nom);
-plant_gx = plant.g_fcn(x);
-plant_gx_nom = plant.g_fcn(x_nom);
+%weight_slack = 10;
+%H = [eye(nu), zeros(nu, 1);
+%     zeros(1, nu), weight_slack]; % with slack
+H = eye(nu); % no slack
 
-weight_input = 1;
-weight_slack = 5;
-H = [weight_input * eye(nu), zeros(nu, 1);
-     zeros(1, nu), weight_slack];
-%H = weight_input * eye(nu); % no slack
-
-% Formulate it as a min-norm CLF QP problem
-% min [u' slack] H [u; slack]
-% Constraints : A[u; slack] + B <= 0
+% Formulate it as a min-norm QP problem:
+%   min [u' slack] H [u; slack] + f' [u; slack]
+%   Constraints : A[u; slack] + B <= 0
 
 gamma_s1_Mx = gamma_s(:,end)'/controller.W_fcn(x);
 gamma_s0_Mx_nom = gamma_s(:,1)'/controller.W_fcn(x_nom);
-A = [gamma_s1_Mx * plant_gx, -1];
-%A = [gamma_s1_Mx * plant_gx]; % no slack
-B = gamma_s1_Mx * (plant_fx + plant_gx * u_nom) ...
-    - gamma_s0_Mx_nom * (plant_fx_nom + plant_gx_nom * u_nom) ...
+%A = [gamma_s1_Mx * plant.g_fcn(x), -1]; % with slack
+A = gamma_s1_Mx * plant.g_fcn(x); % no slack
+%B = gamma_s1_Mx * (plant.f_fcn(x) + plant.g_fcn(x) * u_nom) ...
+%    - gamma_s0_Mx_nom * (plant.f_fcn(x_nom) + plant.g_fcn(x_nom) * u_nom) ...
+%    + controller.lambda * Erem;
+B = gamma_s1_Mx * plant.dynamics(x,u_nom) ...
+    - gamma_s0_Mx_nom * plant.dynamics(x_nom,u_nom) ...
     + controller.lambda * Erem;
 
 % Use quadprog to solve the QP
-%{
-    f = [zeros(size(u_nom)); 0];
-    [u, ~, exitflag, ~] = quadprog(H, f, A, -B, [], [], [], [], [], []);
-    if exitflag == 1
-        uc = u_nom + u(1:nu);
-    else
-        warning("Something went wrong when solving the QP using quadprog");
-        uc = u_nom;
-    end
-    slack = u(end);
-%}
+%f = [zeros(size(u_nom)); 0]; % with slack
+f = [zeros(size(u_nom))]; % no slack
+[u, ~, exitflag, ~] = quadprog(H, f, A, -B, [], [], [], [], [], []);
+if exitflag == 1
+    uc = u_nom + u(1:nu);
+else
+    warning("Something went wrong when solving the QP using quadprog");
+    uc = u_nom;
+end
+%slack = u(end);
+slack = 0;
 
-% Analytic solution
+% Analytic solution of the QP
+%{
 if B <= 0
     lambda = 0;
 else
@@ -121,6 +119,7 @@ end
 u = -1/2 * lambda * inv(H)' * A';
 uc = u_nom + u(1:nu);
 slack = u(end);
+%}
 
 if (t-t_pre>= 0.4) && mod(t,1)< 0.1
     t_pre = t;
