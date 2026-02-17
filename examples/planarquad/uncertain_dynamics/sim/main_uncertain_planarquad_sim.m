@@ -6,32 +6,28 @@ addpath('../metric');
 addpath('../../utilities');
 
 %% Simulation settings
-file_controller = '../metric/ccm_0.8.mat'; % CCM
+file_controller = '../metric/ccm_0.7.mat'; % uCCM
 load(file_controller);
 
-sim_config.include_obs = 0;         % whether to include the obstacles
-sim_config.include_dist = 0;        % include the disturbance  
+sim_config.include_obs = 0;         % whether to include the obstacles  
 sim_config.replan_nom_traj = 0;     % whether to replan a trajectory **1 doesn't work
-sim_config.dt_sim = 1/100;
+sim_config.dt_sim = 0.01;
 
 n = 6;
 nu = 2;
-
-% The following are only needed if replan_nom_traj == 1, which doesn't work now
-% sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
-% sim_config.tight_input_bnd = 0;    % whether to tighten the input bounds in planning a nominal trajectory
-% sim_config.duration = 2;           % sim duration
-% xF = [5 5 0 0 0 0]';              % final state
-% umax = 3*plant.m*plant.g;         % control limit
-% u_bnd = [0 0; umax umax]';
-% x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
-%           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Plan or load a nominal trajecotory 
 addpath('C:\ACXIS Code\OptimTraj');
 gen_nominal_traj;
 controller.x_nom_fcn = x_nom_fcn;
 controller.u_nom_fcn = u_nom_fcn;
+
+%% Set uncertainty parameter: a
+a = 0.2;
+controller.W_fcn = @(x) controller.W_fcn(x,a);
+controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
+
+plant.dynamics = @(x,u) plant.dynamics(x,u,a);
 
 %% Formulate the NLP problem for geodesic computation
 lambda = controller.lambda;
@@ -54,7 +50,7 @@ xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
-x0 = [0;0;0;0;0;0];
+x0 = [0.5;0.5;0;0;0;0];
 x = x0;
 
 options = odeset('RelTol',1e-2);
@@ -71,15 +67,16 @@ for i = 1:T_steps
     xnomTraj(:,i) = xd;
     unomTraj(:,i) = ud;
     
+    % TODO: account for Y(x)a in ccm_law
     [uc, Erem, slack] = ccm_law(t, xd, ud, x, plant, controller);
     uTraj(:,i) = uc;
     energyTraj(:,i) = Erem;
     slackTraj(:,i) = slack;
-
+    
     % Propagate state with zero-hold for control inputs
     if i < T_steps
-        %[t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, plant), [times(i) times(i+1)], x, options);
-        [t_plus, x_plus] = ode23s(@(t,x) planarquad_dyn(t, x, uc, plant), [times(i) times(i+1)], x, options);
+        %[t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, a, plant), [times(i) times(i+1)], x, options);
+        [t_plus, x_plus] = ode23s(@(t,x) planarquad_dyn(t, x, uc, a, plant), [times(i) times(i+1)], x, options);
         x = x_plus(end,:)';
     end
 
@@ -89,8 +86,8 @@ end
 plot_trajs;
 
 %% Planar quad dynamics
-function dxdt = planarquad_dyn(t, x, u, plant)
+function dxdt = planarquad_dyn(t, x, u, a, plant)
 
-dxdt = plant.f_fcn(x) + plant.g_fcn(x) * u;
+dxdt = plant.f_fcn(x) + plant.g_fcn(x) * u + plant.Y_fcn(x) * a;
 
 end

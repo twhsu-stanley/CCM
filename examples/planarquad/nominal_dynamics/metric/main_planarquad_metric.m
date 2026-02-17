@@ -4,8 +4,8 @@ clc
 %% add paths
 addpath(genpath("C:\ACXIS Code\YALMIP\"));
 addpath("C:\Program Files\Mosek\11.0\toolbox\r2019b");
-addpath("../../../ccm_search/metric_search_offline");
-addpath("../../../ccm_search/control_law_online");
+addpath("../../../../ccm_search/metric_search_offline");
+addpath("../../../../ccm_search/control_law_online");
 
 yalmip('clear');
 
