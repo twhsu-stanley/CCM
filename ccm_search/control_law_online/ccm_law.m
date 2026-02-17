@@ -1,4 +1,4 @@
-function [uc, Erem, slack, gmb]= ccm_law(t,x_nom,u_nom,x,plant,controller)
+function [uc, Erem, slack]= ccm_law(t,x_nom,u_nom,x,plant,controller)
 geodesic = controller.geodesic; 
 n = plant.n;
 nu = plant.nu; %size(plant.B,2);
@@ -73,9 +73,8 @@ end
 
 plant_fx = plant.f_fcn(x);
 plant_fx_nom = plant.f_fcn(x_nom);
-plant_Bx = plant.B_fcn(x);
-plant_Bx_nom = plant.B_fcn(x_nom);
-plant_Bwx = plant.Bw_fcn(x);
+plant_gx = plant.g_fcn(x);
+plant_gx_nom = plant.g_fcn(x_nom);
 
 weight_input = 1;
 weight_slack = 5;
@@ -83,33 +82,20 @@ H = [weight_input * eye(nu), zeros(nu, 1);
      zeros(1, nu), weight_slack];
 %H = weight_input * eye(nu); % no slack
 
-if isfield(controller,'use_generated_code') && controller.use_generated_code == 1 && ~isempty(geodesic.nlprob)
-    u = compute_u_ccm_mex(x, x_nom, u_nom, Erem, gamma_s, ...
-                          H, controller.lambda, int8(controller.use_cp), controller.cp_quantile, ...
-                          plant_fx, plant_fx_nom, plant_Bx, plant_Bx_nom, plant_Bwx);
-    % compute_u_ccm(x, x_nom, u_nom, Erem, gamma_s, ...
-    %               H, controller_lambda, use_cp, cp_quantile, ...
-    %               plant_fx, plant_fx_nom, plant_Bx, plant_Bx_nom, plant_Bwx);
-    uc = u_nom + u(1:nu);
-    slack = u(end);
-else
-    % Formulate it as a min-norm CLF QP problem
-    % min [u' slack] H [u; slack]
-    % Constraints : A[u; slack] + B <= 0
-    
-    Theta = chol(inv(controller.W_fcn(x)));
-    sigma_max = max(svd(Theta * plant_Bwx)); % maximum singular value % this is locally Lipschitz
+% Formulate it as a min-norm CLF QP problem
+% min [u' slack] H [u; slack]
+% Constraints : A[u; slack] + B <= 0
 
-    gamma_s1_Mx = gamma_s(:,end)'/controller.W_fcn(x);
-    A = [gamma_s1_Mx * plant_Bx, -1];
-    %A = [gamma_s1_Mx * plant_Bx]; % no slack
-    B = gamma_s1_Mx * (plant_fx + plant_Bx * u_nom) ...
-        - gamma_s(:,1)'/controller.W_fcn(x_nom) * (plant_fx_nom + plant_Bx_nom * u_nom) ...
-        + controller.lambda * Erem ...
-        + sigma_max * controller.cp_quantile * sqrt(Erem) * controller.use_cp;
-    
-    % Use quadprog to solve the QP
-    %{
+gamma_s1_Mx = gamma_s(:,end)'/controller.W_fcn(x);
+gamma_s0_Mx_nom = gamma_s(:,1)'/controller.W_fcn(x_nom);
+A = [gamma_s1_Mx * plant_gx, -1];
+%A = [gamma_s1_Mx * plant_gx]; % no slack
+B = gamma_s1_Mx * (plant_fx + plant_gx * u_nom) ...
+    - gamma_s0_Mx_nom * (plant_fx_nom + plant_gx_nom * u_nom) ...
+    + controller.lambda * Erem;
+
+% Use quadprog to solve the QP
+%{
     f = [zeros(size(u_nom)); 0];
     [u, ~, exitflag, ~] = quadprog(H, f, A, -B, [], [], [], [], [], []);
     if exitflag == 1
@@ -119,28 +105,22 @@ else
         uc = u_nom;
     end
     slack = u(end);
-    %}
+%}
 
-    % Analytic solution
-    if B <= 0
+% Analytic solution
+if B <= 0
+    lambda = 0;
+else
+    denom = A * inv(H) * A';
+    if denom < 1e-9
         lambda = 0;
     else
-        denom = A*inv(H)*A';
-        if denom < 1e-9
-            lambda = 0;
-        else
-            lambda = 2*B/denom;
-        end
+        lambda = 2*B/denom;
     end
-    u = -1/2 * lambda * inv(H)' * A';
-    uc = u_nom + u(1:nu);
-    slack = u(end);
-    % if slack > sigma_max * controller.cp_quantile * sqrt(Erem) * controller.use_cp
-    %     warning("slack too large");
-    % end
-    %gmb = norm(A(1:nu));
-    gmb = sigma_max * controller.cp_quantile * sqrt(Erem) * controller.use_cp;
 end
+u = -1/2 * lambda * inv(H)' * A';
+uc = u_nom + u(1:nu);
+slack = u(end);
 
 if (t-t_pre>= 0.4) && mod(t,1)< 0.1
     t_pre = t;

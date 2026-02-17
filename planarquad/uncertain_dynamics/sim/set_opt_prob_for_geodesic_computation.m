@@ -15,14 +15,9 @@ Aeq = [kron(eye(n),T(:,1)'); kron(eye(n),ones(1,D+1))];
 Aeq = sparse(Aeq);
 
 % --------- formulate and solve the NLP problem using OPTI --------------
-ndec = n*(D+1);
-if controller.use_generated_code == 1
-    costf = @(c) RiemannEnergy1_mex(c,n,D,N,T,Tdot,w_cheby);
-    grad = @(c) energyGradient1_mex(c,n,D,N,T,Tdot,w_cheby);     
-else    
-    costf = @(c) RiemannEnergy(c,n,D,N,T,Tdot,w_cheby,controller.W_fcn);
-    grad = @(c) energyGradient(c,n,D,N,T,Tdot,w_cheby,controller.W_fcn,controller.dW_dxi_fcn); 
-end
+ndec = n*(D+1);  
+costf = @(c) RiemannEnergy(c,n,D,N,T,Tdot,w_cheby,controller.W_fcn);
+grad = @(c) energyGradient(c,n,D,N,T,Tdot,w_cheby,controller.W_fcn,controller.dW_dxi_fcn); 
 
 geodesic.D = D; geodesic.N = N; geodesic.ndec = ndec;
 geodesic.T = T; geodesic.Tdot = Tdot;

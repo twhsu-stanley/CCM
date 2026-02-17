@@ -83,36 +83,9 @@ Y_fcn = @(x) [0;
 Y_phi_fcn = @(x) 0;
 Y_vx_fcn = @(x) cos(x(3));
 
-%% for testing with(Chebyshev polynomials) approximated fcns 
-%{
-%Bw_approx_fcn = @(x)[zeros(1,3),cosx(x(3)),-sinx(x(3)),0]';
-%f_vx_approx_fcn = @(x) x(6)*x(5)-plant.grav*sinx(x(3));
-%Bw_vx_approx_fcn = @(x) cosx(x(3));
-
-% approximated f_approx, df_dx_fcn
-x = x_store;
-s = sdisplay(f);
-s2 = sdisplay(df_dx);
-%s3 = sdisplay(dBw_dx);
-syms x [n 1]
-syms f_approx_fcn [n 1]
-syms df_dx_approx_fcn [n n]
-%syms dBw_dx_approx_fcn [n n]
-for i=1:n    
-    f_approx_fcn(i,1) = eval(s{i});    
-    for j=1:n
-        df_dx_approx_fcn(i,j) = eval(s2{i,j});
-        %dBw_dx_approx_fcn(i,j) =eval(s3{i,j}); 
-    end
-end
-f_approx_fcn = matlabFunction(f_approx_fcn,'Vars',{x});
-df_dx_approx_fcn = matlabFunction(df_dx_approx_fcn,'Vars',{x});
-%dBw_dx_approx_fcn = matlabFunction(dBw_dx_approx_fcn,'Vars',{x});
-%}
-
-x = x_store;
-
 %% Store data
+x = x_store;
+
 plant.n = n; 
 plant.nu = nu; 
 plant.na = na;
@@ -126,10 +99,3 @@ plant.g = g;
 plant.g_perp = g_perp;
 plant.g_fcn = @(x) g;
 plant.dynamics = @(x,u,a) f_fcn(x) + g * u + Y_fcn(x) * a;
-
-%C = eye(n);
-%D = zeros(n, nu);
-%nz = size(C,1);
-%plant.nz = nz;
-%plant.C = C;
-%plant.D = D;

@@ -51,35 +51,13 @@ plot(times,slackTraj(1,:)); grid on
 xlabel('Time (s)');
 ylabel('CLF QP slack');
 
-try
-    figure;
-    plot(times,slackTraj(1,:)); hold on
-    plot(times,gmbTraj(1,:)); grid on
-    xlabel('Time (s)');
-    ylabel('||gamma_s (1)^T M(x)B(x)||');
-    legend("slack", "tightening")
-catch
-    
-end
-
 %% Error norm
-% controller.cp_quantile here is actually max(Bw*w)
 max_slack = max(slackTraj);
 figure;
 plot(times, vecnorm(xnomTraj - xTraj,2,1)); hold on
-if controller.use_cp == false
-    % ignore the slack since it shouldn't have been needed
-    plot(times, sqrt(controller.w_upper/controller.w_lower) * norm(xnomTraj(:,1) - xTraj(:,1)) * exp(-controller.lambda.*times) ...
-        + sqrt(controller.w_upper/controller.w_lower)*controller.cp_quantile/controller.lambda * (1-exp(-controller.lambda.*times)));
-    legend('actual','og upper bound');
-else
-    plot(times, sqrt(controller.w_upper/controller.w_lower * norm(xnomTraj(:,1) - xTraj(:,1))^2 * exp(-2*controller.lambda.*times) ...
-    + 2*max_slack*controller.w_upper * (1-exp(-2*controller.lambda.*times))) ); hold on
-    %
-    plot(times, sqrt(controller.w_upper/controller.w_lower) * norm(xnomTraj(:,1) - xTraj(:,1)) * exp(-controller.lambda.*times) ...
-        + sqrt(controller.w_upper/controller.w_lower)*controller.cp_quantile/controller.lambda * (1-exp(-controller.lambda.*times)));
-    legend('actual','tightened upper bound', 'og upper bound');
-end
+% ignore the slack since it shouldn't have been needed
+%plot(times, sqrt(controller.w_upper/controller.w_lower) * norm(xnomTraj(:,1) - xTraj(:,1)) * exp(-controller.lambda.*times) ...
+%        + sqrt(controller.w_upper/controller.w_lower)*controller.cp_quantile/controller.lambda * (1-exp(-controller.lambda.*times)));
 xlabel('Time (s)');
 ylabel('||x||_2');
 
@@ -88,19 +66,8 @@ grid on
 %% Riemannian distance
 figure;
 plot(times, sqrt(energyTraj)); hold on
-if controller.use_cp == false
-    plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
-        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times)));
-    legend("actual", "og upper bound");
-else
-    plot(times, sqrt(energyTraj(1) * exp(-2*controller.lambda.*times) ...
-        + (1-exp(-2*controller.lambda.*times)) * 2*max_slack));
-    %
-    plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
-        + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times))); hold on
-
-    legend("actual","tightened upper bound", "og upper bound")
-end
+%plot(times, sqrt(energyTraj(1)) * exp(-controller.lambda.*times) ...
+%     + controller.cp_quantile/controller.lambda/sqrt(controller.w_lower) * (1-exp(-controller.lambda.*times)));
 ylim([0,inf]);
 xlabel('Time (s)');
 ylabel('Riemann distance: sqrt E(t)');

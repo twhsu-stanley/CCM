@@ -4,8 +4,8 @@ clc
 %% add paths
 addpath(genpath("C:\ACXIS Code\YALMIP\"));
 addpath("C:\Program Files\Mosek\11.0\toolbox\r2019b");
-addpath("../../ccm_search/metric_search_offline");
-addpath("../../ccm_search/control_law_online");
+addpath("../../../ccm_search/metric_search_offline");
+addpath("../../../ccm_search/control_law_online");
 
 yalmip('clear');
 
@@ -17,7 +17,7 @@ construct_planarquad;
 
 %% Settings for searching CCM
 controller.type = "CCM";
-lambda = 1.2;
+lambda = 0.8;
 controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4];
@@ -28,17 +28,16 @@ p_lim = pi/3;  % phi
 pd_lim = pi/3; % phi_dot 
 vx_lim = 2;    % vx
 vz_lim = 1;    % vz
-%w_lim = 1;     % w (disturbance)
-state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]*0.001;
-state_set.num_consts_4_W_states = 2;        % #constraints from box_lim that involve states on which the metric W depends
-state_set.other_lim_states = [x(6);x(5)]; 
-state_set.lagrange_deg_W = 4;               % degree of the lafor the bounds of W
-state_set.lagrange_deg_ccm = 4;             % for ccm condition
 state_set.p_lim = p_lim;
 state_set.pd_lim = pd_lim;
 state_set.vx_lim = vx_lim;
 state_set.vz_lim = vz_lim;
-%state_set.w_lim = w_lim;
+state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]*0.001;
+
+state_set.num_consts_4_W_states = 2;        % #constraints from box_lim that involve states on which the metric W depends
+state_set.other_lim_states = [x(6);x(5)]; 
+state_set.lagrange_deg_W = 4;               % degree of the lafor the bounds of W
+state_set.lagrange_deg_ccm = 4;             % for ccm condition
 
 %% Parameterization of W
 W_states = x(Wstates_index);
@@ -131,37 +130,22 @@ controller.dW_dxi_fcn = dW_dxi_fcn;
 controller.dW_dt_fcn = dW_dt_fcn;
 
 %% Check CCM conditions (and compute the tubes for planning)
-% TODO: double check this
+% TODO: remove some fields that cannot be properly saved
 if isfield(plant,'df_dx')
-    plant = rmfield(plant,{'df_dx','Bw','w'});
+    plant = rmfield(plant,{'df_dx'});
 end
-if isfield(controller,'rho')
-    controller= rmfield(controller,{'rho','c_rho','v_rho'});
+
+if isfield(plant,'A')
+    plant = rmfield(plant,{'A'});
 end
+
 if isfield(state_set,'box_lim')
     state_set = rmfield(state_set,{'box_lim','other_lim_states','W_states'});
 end
 plant.state_set = state_set;
 
-% TODO: try to remove this since we're not using their planning method
-%compute_tubes;
-
 %% Save data
 if save_rsts == 1
     file_name = ['ccm_' num2str(controller.lambda) '.mat'];
     save(file_name,'plant','controller','state_set');
-end
-
-%% Generate the c codes for accelerating geodesic computation
-% To use the generated codes, copy .mex and .mat files to the sim folder
-
-% parameters used in the pseudospectral method for geodesic computation
-geodesic_setting_for_codegen.D = 2; 
-geodesic_setting_for_codegen.N = 8;
-answer = questdlg('Do you want to generate the C codes for accelerating geodesic computation used for determining the control law?','Question for code generation','Yes','No','No');
-switch answer 
-    case 'Yes'
-        generate_code_for_geodesic_cal(plant.n,plant.nu,plant.nw,geodesic_setting_for_codegen);        
-        save('geodesic_setting_for_codegen.mat','geodesic_setting_for_codegen');
-    case 'No'
 end

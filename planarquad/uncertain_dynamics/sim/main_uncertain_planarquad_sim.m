@@ -75,11 +75,11 @@ for i = 1:T_steps
     uTraj(:,i) = uc;
     energyTraj(:,i) = Erem;
     slackTraj(:,i) = slack;
-
+    
     % Propagate state with zero-hold for control inputs
     if i < T_steps
-        %[t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, plant), [times(i) times(i+1)], x, options);
-        [t_plus, x_plus] = ode23s(@(t,x) planarquad_dyn(t, x, uc, plant), [times(i) times(i+1)], x, options);
+        %[t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, a, plant), [times(i) times(i+1)], x, options);
+        [t_plus, x_plus] = ode23s(@(t,x) planarquad_dyn(t, x, uc, a, plant), [times(i) times(i+1)], x, options);
         x = x_plus(end,:)';
     end
 
@@ -89,8 +89,8 @@ end
 plot_trajs;
 
 %% Planar quad dynamics
-function dxdt = planarquad_dyn(t, x, u, plant)
+function dxdt = planarquad_dyn(t, x, u, a, plant)
 
-dxdt = plant.f_fcn(x) + plant.g_fcn(x) * u;
+dxdt = plant.f_fcn(x) + plant.g_fcn(x) * u + plant.Y_fcn(x) * a;
 
 end

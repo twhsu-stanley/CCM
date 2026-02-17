@@ -17,7 +17,7 @@ construct_uncertain_planarquad;
 
 %% Settings for searching CCM
 controller.type = "CCM";
-lambda = 0.8; % 1.2
+lambda = 0.7; % 1.2
 controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4]; % indices of states on which the CCM depends
@@ -53,14 +53,14 @@ state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001; %; a2_lim^2-a(
 
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
-state_set.lagrange_deg_W = 2; %4; % degree of Lagrangian for enforcing the bounds of W
-state_set.lagrange_deg_ccm = 2; %4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
+state_set.lagrange_deg_W = 4; %4; % degree of Lagrangian for enforcing the bounds of W
+state_set.lagrange_deg_ccm = 4; %4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
 %% Parameterization of W(x,a)
 W_states = [x(Wstates_index); a(1)]; % extend W_states to incorporate a
-v_W = monolist(W_states, 5); % monomials of W_states up to degree 4/3/2
+v_W = monolist(W_states, 4); % monomials of W_states up to degree 4/3/2
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 dv_W_da = jacobian(v_W, a(1)); % take derivatives w.r.t. a
@@ -182,30 +182,17 @@ if isfield(plant,'df_dx')
     plant = rmfield(plant,{'df_dx'});
 end
 
+if isfield(plant,'A')
+    plant = rmfield(plant,{'A'});
+end
+
 if isfield(state_set,'box_lim')
     state_set = rmfield(state_set,{'box_lim','other_lim_states','W_states'});
 end
 plant.state_set = state_set;
-
-%compute_tubes;
 
 %% Save data
 if save_rsts == 1
     file_name = ['ccm_' num2str(controller.lambda) '.mat'];
     save(file_name,'plant','controller','state_set');
 end
-
-%% Generate the c codes for accelerating geodesic computation
-% To use the generated codes, copy .mex and .mat files to the sim folder
-%{
-% parameters used in the pseudospectral method for geodesic computation
-geodesic_setting_for_codegen.D = 2; 
-geodesic_setting_for_codegen.N = 8;
-answer = questdlg('Do you want to generate the C codes for accelerating geodesic computation used for determining the control law?','Question for code generation','Yes','No','No');
-switch answer 
-    case 'Yes'
-        generate_code_for_geodesic_cal(plant.n,plant.nu,plant.nw,geodesic_setting_for_codegen);        
-        save('geodesic_setting_for_codegen.mat','geodesic_setting_for_codegen');
-    case 'No'
-end
-%}
