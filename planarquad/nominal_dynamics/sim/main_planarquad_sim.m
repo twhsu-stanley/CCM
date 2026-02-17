@@ -55,13 +55,13 @@ unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
 x0 = [0;0;0;0;0;0];
-t = times(1);
 x = x0;
 
 options = odeset('RelTol',1e-2);
 
 for i = 1:T_steps
     t = times(i);
+    fprintf('t = %.4f\n', t);
     
     xTraj(:,i) = x;
 

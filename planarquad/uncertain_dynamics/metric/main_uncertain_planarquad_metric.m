@@ -53,14 +53,14 @@ state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001; %; a2_lim^2-a(
 
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
-state_set.lagrange_deg_W = 4; %4; % degree of Lagrangian for enforcing the bounds of W
-state_set.lagrange_deg_ccm = 4; %4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
+state_set.lagrange_deg_W = 4;   % degree of Lagrangian for enforcing the bounds of W
+state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
 %% Parameterization of W(x,a)
 W_states = [x(Wstates_index); a(1)]; % extend W_states to incorporate a
-v_W = monolist(W_states, 4); % monomials of W_states up to degree 4/3/2
+v_W = monolist(W_states, 5); % monomials of W_states up to degree 5/4/3/2
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 dv_W_da = jacobian(v_W, a(1)); % take derivatives w.r.t. a
@@ -174,6 +174,7 @@ dW_dt_fcn = @(x,a) dW_dphi(x,a) * (f_phi_fcn(x) + Y_phi_fcn(x)*a) + dW_dvx(x,a) 
 
 controller.W_fcn = W_fcn;
 controller.dW_dxi_fcn = dW_dxi_fcn;
+controller.dW_dai_fcn = dW_dai_fcn;
 controller.dW_dt_fcn = dW_dt_fcn;
 
 %% Check CCM conditions (and compute the tubes for planning)
@@ -193,6 +194,6 @@ plant.state_set = state_set;
 
 %% Save data
 if save_rsts == 1
-    file_name = ['ccm_' num2str(controller.lambda) '.mat'];
+    file_name = ['uccm_' num2str(controller.lambda) '.mat'];
     save(file_name,'plant','controller','state_set');
 end

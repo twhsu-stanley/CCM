@@ -98,4 +98,5 @@ plant.A = A;
 plant.g = g;
 plant.g_perp = g_perp;
 plant.g_fcn = @(x) g;
+plant.Y_fcn = Y_fcn;
 plant.dynamics = @(x,u,a) f_fcn(x) + g * u + Y_fcn(x) * a;
