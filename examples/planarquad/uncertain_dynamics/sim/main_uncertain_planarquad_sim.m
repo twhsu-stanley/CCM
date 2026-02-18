@@ -1,26 +1,28 @@
 clc;
 clear;
 close all
-addpath trajGen_pvtol trajGen_pvtol/nominal_trajs 
 addpath('../metric');
 addpath('../../utilities');
+addpath('../../planning');
 
 %% Simulation settings
-file_controller = '../metric/ccm_0.7.mat'; % uCCM
+file_controller = '../metric/uccm_0.7.mat'; % uCCM
 load(file_controller);
-
-sim_config.include_obs = 0;         % whether to include the obstacles  
-sim_config.replan_nom_traj = 0;     % whether to replan a trajectory **1 doesn't work
-sim_config.dt_sim = 0.01;
 
 n = 6;
 nu = 2;
 
-%% Plan or load a nominal trajecotory 
-addpath('C:\ACXIS Code\OptimTraj');
-gen_nominal_traj;
-controller.x_nom_fcn = x_nom_fcn;
-controller.u_nom_fcn = u_nom_fcn;
+sim_config.dt_sim = 1/100;
+sim_config.replan_nom_traj = 0;    % whether to replan a trajectory
+sim_config.include_obs = 0;        % whether to include the obstacles 
+sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
+sim_config.duration = 2;           % sim duration % will be modified if replan_nom_traj == 1
+x0 = [0; 0; 0; 0; 0; 0];
+xF = [6; 6; 0; 0; 0; 0];              % final state
+umax = 3 * plant.m * plant.grav;      % control limit
+u_bnd = [0 0; umax umax]';
+x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
+          inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Set uncertainty parameter: a
 a = 0.2;
@@ -28,6 +30,14 @@ controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
 
 plant.dynamics = @(x,u) plant.dynamics(x,u,a);
+plant.A_fcn = @(x) plant.A_fcn(x,a);
+
+%% Plan or load a nominal trajecotory 
+% NOTE: the desired trajecotry follows the uncertain dynamics with Y(x)a
+addpath('C:\ACXIS Code\OptimTraj');
+gen_nominal_traj;
+controller.x_nom_fcn = x_nom_fcn;
+controller.u_nom_fcn = u_nom_fcn;
 
 %% Formulate the NLP problem for geodesic computation
 lambda = controller.lambda;

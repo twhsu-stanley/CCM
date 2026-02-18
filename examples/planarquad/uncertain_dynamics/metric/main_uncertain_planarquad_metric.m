@@ -60,7 +60,7 @@ state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd str
 
 %% Parameterization of W(x,a)
 W_states = [x(Wstates_index); a(1)]; % extend W_states to incorporate a
-v_W = monolist(W_states, 5); % monomials of W_states up to degree 5/4/3/2
+v_W = monolist(W_states, 5); % monomials of W_states up to degree
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 dv_W_da = jacobian(v_W, a(1)); % take derivatives w.r.t. a

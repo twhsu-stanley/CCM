@@ -7,13 +7,10 @@ function soln = trajOpt_pvtol(plant,x0,xF,duration,u_bnd,x_bnd,initGuess,stateCs
 % x0  % initial state
 % xF = [0 0 0 0 0 0]';  % final state
 % Dynamics paramters
-if ~exist('plant','var')
-    load rccm.mat
-end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                     Set up function handles                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
-problem.func.dynamics = @(t,x,u) dyn_fcn(t,x,u,plant.f_fcn,plant.B); % add some disturbances later
+problem.func.dynamics = @(t,x,u) dyn_fcn(t,x,u,plant); % add some disturbances later
 % problem.func.dynamics = @(t,x,u) pvtolDynamics(t,x,u,plant); % add some disturbances later
 problem.func.pathObj = @(t,x,u) pathObjective(u);  %Force-squared cost function
 problem.func.bndObj = @(t0,x0,tF,xF) bndObjective(t0,x0,tF,xF); % Use cost function to define the terminal constraint
@@ -76,7 +73,7 @@ problem.options.hermiteSimpson.nSegment = 40;
 %                            Solve!                                       %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 soln = optimTraj(problem);
-save('TrajOpt','soln','x0','xF','duration')
+%save('TrajOpt','soln','x0','xF','duration')
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                        Display Solution                                 %
@@ -103,7 +100,7 @@ u2 = inputs(2,:);
 % %--------- apply the open-loop control law to simulate the system---------
 % N = length(t);
 % xt = x0;
-% % [ts,states] = ode23s(@(t,x)  plant.f_fcn(x) + plant.B*soln.interp.control(t),[0  duration],x0); 
+% % [ts,states] = ode23s(@(t,x)  plant.f_fcn(x) + plant.g*soln.interp.control(t),[0  duration],x0); 
 % states = states';
 % px = states(1,:);
 % pz = states(2,:);
@@ -170,14 +167,14 @@ if nargout == 2  % Analytic gradients
 end
 end
 
-function [dx, dxGrad] = dyn_fcn(t,x,u,f_fcn,B)
-dx = f_fcn(x)+B*u;
+function [dx, dxGrad] = dyn_fcn(t,x,u,plant)
+dx = plant.dynamics(x,u);
 if nargout == 2   % Analytic gradients
     nTime = length(u);
-    dxGrad = zeros(6,9,nTime); %4 = [time + 6 states + 2 inputs];
+    dxGrad = zeros(6,9,nTime); %9 = [time + 6 states + 2 inputs];
     for i = 1:nTime
-        dxGrad(1:6,2:7,i) = df_dx(x(:,i));
-        dxGrad(1:6,8:9,i) = B;
+        dxGrad(1:6,2:7,i) = plant.A_fcn(x(:,i));
+        dxGrad(1:6,8:9,i) = plant.g;
     end
 end
 end

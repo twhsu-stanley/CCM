@@ -10,6 +10,7 @@ na = 1; % # of parameters % na = 3 for a = [wind_x/m, wind_z/m, moment/J], or na
 x = sdpvar(n,1); % state x = [px, pz, phi, vx, vz, phi_dot]
 x_store = x;
 a = sdpvar(na,1); % constant uncertainty parameters a = [wind_x/m, wind_z/m, moment/J], or just a = [wind_x/m]
+a_store = a;
 
 % approximating sin/cos with Chebshev polynomials (for applying SOS programming)
 sinx = @(x) 0.9101*(x./(pi/3)) - 0.04466*(4*(x./(pi/3)).^3 - 3*(x./(pi/3))); 
@@ -58,7 +59,7 @@ Y = [0;
      -sin_phi;
      0];
 
-dY_dx = jacobian(Y,x);
+%dY_dx = jacobian(Y,x);
 
 A = df_dx;
 for i = 1:size(Y,2)
@@ -66,6 +67,7 @@ for i = 1:size(Y,2)
 end
 
 %{
+% TODO: the sizes are wrong below
 Y_fcn = @(x) [0, 0, 0;
               0, 0, 0;
               0, 0, 0;
@@ -74,17 +76,30 @@ Y_fcn = @(x) [0, 0, 0;
               0, 0, 1];
 %}
 
-Y_fcn = @(x) [0;
-              0;
-              0;
+Y_fcn = @(x) [zeros(1,size(x,2));
+              zeros(1,size(x,2));
+              zeros(1,size(x,2));
               cos(x(3,:));
               -sin(x(3,:));
-              0];
+              zeros(1,size(x,2))];
 Y_phi_fcn = @(x) 0;
 Y_vx_fcn = @(x) cos(x(3));
 
+%% A function (for motion planning only)
+s = sdisplay(A);
+syms x [n 1]
+syms a [na 1]
+syms A_fcn [n n]
+for i = 1:n
+    for j = 1:n
+        A_fcn(i,j) = eval(s{i,j});
+    end
+end
+A_fcn = matlabFunction(A_fcn,'Vars',{x,a});
+
 %% Store data
 x = x_store;
+a = a_store;
 
 plant.n = n; 
 plant.nu = nu; 
@@ -95,6 +110,7 @@ plant.cosx = cosx;
 plant.f_fcn = f_fcn;
 plant.df_dx = df_dx;
 plant.A = A;
+plant.A_fcn = A_fcn;
 plant.g = g;
 plant.g_perp = g_perp;
 plant.g_fcn = @(x) g;

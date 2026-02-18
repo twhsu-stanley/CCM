@@ -1,9 +1,9 @@
-
 if sim_config.include_obs == 0
-    file_traj = ['nomTraj' '.mat']; 
+    file_traj = 'nominal_trajs/nomTraj.mat'; 
 elseif sim_config.include_obs == 1
-    file_traj = ['nomTraj_w_obs_rccm_1.4_wmax_1_plim_0.33pi.mat'];    
+    file_traj = 'nominal_trajs/nomTraj_obs.mat';    
 end
+
 if sim_config.replan_nom_traj == 1
     trajGen_config.x0 = x0;
     trajGen_config.xF = xF;
@@ -12,19 +12,24 @@ if sim_config.replan_nom_traj == 1
     trajGen_config.include_obs = sim_config.include_obs;
     trajGen_config.include_tube = sim_config.include_tube;
     trajGen_config.duration = sim_config.duration;
+
     % ------------------------ Specify the obstacles-----------------------
-    obs = [3 5 0.8;           
-           5.5 7 0.8;
-           6 4 0.8;
-           11 5 0.8];
-    figure(1);clf;hold on;
-    visualize_obs(obs);
-    xlim([0 12]);
-    ylim([0 12]);
-    trajGen_config.obs = obs;
+    if trajGen_config.include_obs
+        obs = [3 5 0.8;           
+               5.5 7 0.8;
+               6 4 0.8;
+               11 5 0.8];
+        figure(1);clf;hold on;
+        visualize_obs(obs);
+        xlim([0 12]);
+        ylim([0 12]);
+        trajGen_config.obs = obs;
+    end
+
     soln = plan_traj_pvtol(plant,controller,trajGen_config);
 
-    tF = soln.grid.time(end); trajGen_config.tF = tF;
+    tF = soln.grid.time(end); 
+    trajGen_config.tF = tF;
     save(file_traj,'trajGen_config','soln');
 else
     load(file_traj);

@@ -1,7 +1,7 @@
 function [uc, Erem, slack]= ccm_law(t,x_nom,u_nom,x,plant,controller)
 geodesic = controller.geodesic; 
 n = plant.n;
-nu = plant.nu; %size(plant.B,2);
+nu = plant.nu; %size(plant.g,2);
 N = geodesic.N;
 D = geodesic.D;
 
@@ -26,7 +26,7 @@ if isempty(geodesic.nlprob)
     gamma_s = c0*geodesic.Tdot;
     
     Erem = 0;
-    for k=1:N+1  
+    for k = 1:N+1
         tmp = gamma_s(:,k)'*(controller.W_fcn(gamma(:,k))\gamma_s(:,k))*geodesic.w_cheby(k);
         Erem = Erem+ tmp ; % noite that W_fcn needs to be selected for each specific example. 
     end 
@@ -39,7 +39,7 @@ else
     else
         geodesic.nlprob.beq = beq;
         geodesic.nlprob.x0 = c0;
-        [copt,Erem,exitflag,info] = fmincon(geodesic.nlprob);
+        [copt, Erem, exitflag, info] = fmincon(geodesic.nlprob);
         if exitflag < 0
             disp('geodesic optimization problem failed!');
         end
@@ -50,8 +50,8 @@ else
         
     % vectorized format (more computationally efficient)
     copt = transpose(reshape(copt,D+1,n)); % the ith row corresponds to the ith element
-    gamma = copt*geodesic.T;
-    gamma_s = copt*geodesic.Tdot;
+    gamma = copt * geodesic.T;
+    gamma_s = copt * geodesic.Tdot;
 
     % Verify whether the curve found is really a geodesic
     %{
@@ -69,6 +69,9 @@ else
         end
     end
     %}
+
+    %TODO: compute \partial(E_Rem)/\partial a unsing gamma
+    
 end
 
 %weight_slack = 10;

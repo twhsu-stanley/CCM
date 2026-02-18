@@ -1,31 +1,28 @@
 clc;
 clear;
 close all
-addpath trajGen_pvtol trajGen_pvtol/nominal_trajs 
 addpath('../metric');
 addpath('../../utilities');
+addpath('../../planning');
 
 %% Simulation settings
 file_controller = '../metric/ccm_0.8.mat'; % CCM
 load(file_controller);
 
-sim_config.include_obs = 0;         % whether to include the obstacles
-sim_config.include_dist = 0;        % include the disturbance  
-sim_config.replan_nom_traj = 0;     % whether to replan a trajectory **1 doesn't work
-sim_config.dt_sim = 1/100;
-
 n = 6;
 nu = 2;
 
-% The following are only needed if replan_nom_traj == 1, which doesn't work now
-% sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
-% sim_config.tight_input_bnd = 0;    % whether to tighten the input bounds in planning a nominal trajectory
-% sim_config.duration = 2;           % sim duration
-% xF = [5 5 0 0 0 0]';              % final state
-% umax = 3*plant.m*plant.g;         % control limit
-% u_bnd = [0 0; umax umax]';
-% x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
-%           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
+sim_config.dt_sim = 1/100;
+sim_config.replan_nom_traj = 1;    % whether to replan a trajectory
+sim_config.include_obs = 0;        % whether to include the obstacles 
+sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
+sim_config.duration = 2;           % sim duration % will be modified if replan_nom_traj == 1
+x0 = [0; 0; 0; 0; 0; 0];
+xF = [5; 5; 0; 0; 0; 0];              % final state
+umax = 3 * plant.m * plant.grav;      % control limit
+u_bnd = [0 0; umax umax]';
+x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
+          inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Plan or load a nominal trajecotory 
 addpath('C:\ACXIS Code\OptimTraj');
@@ -66,8 +63,7 @@ a = 0.4;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Initialization
-x0 = [0.5;0.5;0;0;0;0];
-x = x0;
+x = x0 + [0.1;0.1;0;0;0;0]; % perturb the initial state
 
 options = odeset('RelTol',1e-2);
 
