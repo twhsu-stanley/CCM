@@ -22,18 +22,17 @@ c0((i-1)*(D+1)+2,1) = x - x_nom;
 if isempty(geodesic.nlprob) 
     % indicates that the geodesic is (assumed to be) a straight line    
     c0 = transpose(reshape(c0,D+1,n)); % the ith row corresponds to the ith element
-    gamma = c0*geodesic.T;
-    gamma_s = c0*geodesic.Tdot;
+    gamma = c0 * geodesic.T;
+    gamma_s = c0 * geodesic.Tdot;
     
     Erem = 0;
     for k = 1:N+1
-        tmp = gamma_s(:,k)'*(controller.W_fcn(gamma(:,k))\gamma_s(:,k))*geodesic.w_cheby(k);
-        Erem = Erem+ tmp ; % noite that W_fcn needs to be selected for each specific example. 
-    end 
+        Erem = Erem + gamma_s(:,k)' * (controller.W_fcn(gamma(:,k))\gamma_s(:,k)) * geodesic.w_cheby(k);
+    end
 else
     beq = [x_nom;x];
 
-    if norm(beq-beq_pre)<1e-8 && ~isinf(Erem_pre)
+    if norm(beq-beq_pre) < 1e-8 && ~isinf(Erem_pre)
         copt = copt_pre;
         Erem = Erem_pre;
     else
@@ -70,7 +69,11 @@ else
     end
     %}
 
-    %TODO: compute \partial(E_Rem)/\partial a unsing gamma
+    % TODO: compute the partial derivative of E_Rem w.r.t. a
+    %dErem_da = 0; % TODO: should be a row vector for higer-dim a
+    %for k = 1:N+1
+    %    dErem_da = dErem_da + gamma_s(:,k)' * (controller.dW_dai_fcn(gamma(:,k))\gamma_s(:,k)) * geodesic.w_cheby(k);
+    %end
     
 end
 

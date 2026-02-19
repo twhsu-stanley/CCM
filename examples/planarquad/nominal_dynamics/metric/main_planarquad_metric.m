@@ -93,7 +93,7 @@ for i=1:n
         W_fcn(i,j) = eval(s{i,j});
     end
 end
-matlabFunction(W_fcn,'File','W_fcn1','Vars',{x});
+matlabFunction(W_fcn,'File','W_fcn','Vars',{x});
 W_fcn = matlabFunction(W_fcn,'Vars',{x});
 
 [n1,n2]= size(dv_W_dx);
@@ -118,16 +118,16 @@ dW_dvx = matlabFunction(dW_dvx,'Vars',{x});
 
 dW_dxi_fcn = @(i,x) (i==3)*dW_dphi(x)+(i==4)*dW_dvx(x);
 dW_dxi_fcn_str = func2str(dW_dxi_fcn);
-dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn1(i,x)\n', 'dW_dxi = ', dW_dxi_fcn_str(7:end), ';');
-fid = fopen('dW_dxi_fcn1.m','w');
+dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x)\n', 'dW_dxi = ', dW_dxi_fcn_str(7:end), ';');
+fid = fopen('dW_dxi_fcn.m','w');
 fprintf(fid,dW_dxi_fcn_str);
 fclose(fid);
 
-dW_dt_fcn = @(x) dW_dphi(x)*f_phi_fcn(x) + dW_dvx(x)*f_vx_fcn(x);
+%dW_dt_fcn = @(x) dW_dphi(x)*f_phi_fcn(x) + dW_dvx(x)*f_vx_fcn(x);
 
 controller.W_fcn = W_fcn;
 controller.dW_dxi_fcn = dW_dxi_fcn;
-controller.dW_dt_fcn = dW_dt_fcn;
+%controller.dW_dt_fcn = dW_dt_fcn;
 
 %% Check CCM conditions (and compute the tubes for planning)
 % TODO: remove some fields that cannot be properly saved

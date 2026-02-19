@@ -17,7 +17,7 @@ construct_uncertain_planarquad;
 
 %% Settings for searching CCM
 controller.type = "CCM";
-lambda = 0.7; % 1.2
+lambda = 0.8; % 1.2
 controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4]; % indices of states on which the CCM depends
@@ -34,7 +34,7 @@ consider_state_set = 1; % whether to consider a compact set for the states when 
 % limits for states
 p_lim = pi/3;
 pd_lim = pi/3;
-vx_lim = 2.0;
+vx_lim = 1.0;
 vz_lim = 1.0;
 state_set.p_lim = p_lim;
 state_set.pd_lim = pd_lim;
@@ -118,7 +118,7 @@ for i = 1:n
         W_fcn(i,j) = eval(s{i,j});
     end
 end
-matlabFunction(W_fcn,'File','W_fcn1','Vars',{x,a});
+matlabFunction(W_fcn,'File','W_fcn','Vars',{x,a});
 W_fcn = matlabFunction(W_fcn,'Vars',{x,a});
 
 % Derivatives of W w.r.t. states
@@ -142,8 +142,8 @@ dW_dvx = matlabFunction(dW_dvx,'Vars',{x,a});
 %
 dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a) + (i==4) * dW_dvx(x,a);
 dW_dxi_fcn_str = func2str(dW_dxi_fcn);
-dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn1(i,x,a)\n', 'dW_dxi = ', dW_dxi_fcn_str(9:end), ';');
-fid = fopen('dW_dxi_fcn1.m','w');
+dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dxi_fcn_str(9:end), ';');
+fid = fopen('dW_dxi_fcn.m','w');
 fprintf(fid, dW_dxi_fcn_str);
 fclose(fid);
 
@@ -164,18 +164,17 @@ dW_da1 = matlabFunction(dW_da1,'Vars',{x,a});
 %
 dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
 dW_dai_fcn_str = func2str(dW_dai_fcn);
-dW_dai_fcn_str = strcat('function dW_dxi = dW_dxi_fcn1(i,x,a)\n', 'dW_dxi = ', dW_dai_fcn_str(9:end), ';');
-fid = fopen('dW_dai_fcn1.m','w');
+dW_dai_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dai_fcn_str(9:end), ';');
+fid = fopen('dW_dai_fcn.m','w');
 fprintf(fid, dW_dai_fcn_str);
 fclose(fid);
 
-% Apply chain rule
-dW_dt_fcn = @(x,a) dW_dphi(x,a) * (f_phi_fcn(x) + Y_phi_fcn(x)*a) + dW_dvx(x,a) * (f_vx_fcn(x) + Y_vx_fcn(x)*a); % dW_da1 * da/dt = dW_da1 * 0 = 0
+%dW_dt_fcn = @(x,a) dW_dphi(x,a) * (f_phi_fcn(x) + Y_phi_fcn(x)*a) + dW_dvx(x,a) * (f_vx_fcn(x) + Y_vx_fcn(x)*a); % dW_da1 * da/dt = dW_da1 * 0 = 0
 
 controller.W_fcn = W_fcn;
 controller.dW_dxi_fcn = dW_dxi_fcn;
 controller.dW_dai_fcn = dW_dai_fcn;
-controller.dW_dt_fcn = dW_dt_fcn;
+%controller.dW_dt_fcn = dW_dt_fcn;
 
 %% Check CCM conditions (and compute the tubes for planning)
 % TODO: remove some fields that cannot be properly saved
