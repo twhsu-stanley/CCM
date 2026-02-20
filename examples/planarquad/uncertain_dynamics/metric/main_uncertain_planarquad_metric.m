@@ -49,7 +49,7 @@ a1_lim = 0.5;
 state_set.a1_lim = a1_lim;
 %state_set.a2_lim = a2_lim;
 %state_set.a3_lim = a3_lim;
-state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001; %; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2] * 0.001;
+state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.01; %; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2] * 0.001;
 
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
@@ -60,7 +60,7 @@ state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd str
 
 %% Parameterization of W(x,a)
 W_states = [x(Wstates_index); a(1)]; % extend W_states to incorporate a
-v_W = monolist(W_states, 5); % monomials of W_states up to degree
+v_W = monolist(W_states, 4); % monomials of W_states up to degree
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 dv_W_da = jacobian(v_W, a(1)); % take derivatives w.r.t. a
@@ -164,7 +164,7 @@ dW_da1 = matlabFunction(dW_da1,'Vars',{x,a});
 %
 dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
 dW_dai_fcn_str = func2str(dW_dai_fcn);
-dW_dai_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dai_fcn_str(9:end), ';');
+dW_dai_fcn_str = strcat('function dW_dai = dW_dai_fcn(i,x,a)\n', 'dW_dai = ', dW_dai_fcn_str(9:end), ';');
 fid = fopen('dW_dai_fcn.m','w');
 fprintf(fid, dW_dai_fcn_str);
 fclose(fid);

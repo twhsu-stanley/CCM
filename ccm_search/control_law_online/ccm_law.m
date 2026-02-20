@@ -69,7 +69,7 @@ else
     end
     %}
 
-    % TODO: compute the partial derivative of E_Rem w.r.t. a
+    % TODO: compute the partial derivative of E_rem w.r.t. a
     %dErem_da = 0; % TODO: should be a row vector for higer-dim a
     %for k = 1:N+1
     %    dErem_da = dErem_da + gamma_s(:,k)' * (controller.dW_dai_fcn(gamma(:,k))\gamma_s(:,k)) * geodesic.w_cheby(k);
