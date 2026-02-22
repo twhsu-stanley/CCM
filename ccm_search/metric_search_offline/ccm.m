@@ -35,7 +35,7 @@ if state_set.consider_state_set == 1
     % considering the state constraints using S procedure        
     for i = 1:length(state_set.box_lim)               
         
-        % First part: enforce metric bounds only on the state limits of W_states (which may incude the uncertainty paramete, a)
+        % First part: enforce metric bounds only on the state limits of W_states (which may incude the uncertainty parameter, a)
         if (i <= state_set.num_consts_4_W_states || i > state_set.num_consts_4_W_states + length(state_set.other_lim_states))...
                 && isa(dW_dt,'sdpvar')
             

@@ -5,7 +5,7 @@ plant.J = 0.00383;  % (kgm^2), moment of inertia
 
 n = 6;  % # of states
 nu = 2; % # of inputs 
-na = 1; % # of parameters % na = 3 for a = [wind_x/m, wind_z/m, moment/J], or na = 1 for a = [wind_x/m]
+na = 4; % # of parameters % na = 4 or 1
 
 x = sdpvar(n,1); % state x = [px, pz, phi, vx, vz, phi_dot]
 x_store = x;
@@ -18,7 +18,7 @@ cosx = @(x) 0.7441 -0.2499*(2*(x./(pi/3)).^2 -1);
 sin_phi = sinx(x(3)); 
 cos_phi = cosx(x(3));
 
-%% System dynamics: x_dot = f(x) + g(x)u + Y(x)a
+%% Nominal dynamics: f(x) + g(x)u
 f = [x(4) * cos_phi - x(5) * sin_phi;     %px
      x(4) * sin_phi + x(5) * cos_phi;     %pz
      x(6);                                %phi
@@ -28,64 +28,89 @@ f = [x(4) * cos_phi - x(5) * sin_phi;     %px
 
 df_dx = jacobian(f,x);
 
-% f written as a function handle: can also work when x has multiple columns
+% can also work when x has multiple columns (needed for motion planning)
 f_fcn = @(x) [x(4,:) .* cos(x(3,:)) - x(5,:).*sin(x(3,:)); 
               x(4,:) .* sin(x(3,:)) + x(5,:).*cos(x(3,:));
               x(6,:);
               x(6,:) .* x(5,:) - plant.grav * sin(x(3,:));
               -x(6,:) .* x(4,:) - plant.grav * cos(x(3,:));
               zeros(1,size(x,2))];
-f_phi_fcn = @(x) x(6);
-f_vx_fcn = @(x) x(6) * x(5) - plant.grav * sin(x(3));
+f_phi_fcn = @(x) x(6,:);
+f_vx_fcn = @(x) x(6,:) .* x(5,:) - plant.grav * sin(x(3,:));
 
 g = [zeros(4,2); 1/plant.m, 1/plant.m; plant.l/plant.J, -plant.l/plant.J]; 
 g_perp = [eye(4); zeros(2,4)];
 
-% Unmatched uncertanity: Y(x)a
-% a = [wind_x/m, wind_z/m, moment/J]: constant
-%{
-Y = [0, 0, 0;
-     0, 0, 0;
-     0, 0, 0;
-     cos_phi, sin_phi, 0;
-     -sin_phi, cos_phi, 0;
-     0, 0, 1];
-%}
-% a = [wind_x/m]: constant
-Y = [0;
-     0;
-     0;
-     cos_phi;
-     -sin_phi;
-     0];
+%% Parametric uncertainty: Y(x)a
 
-%dY_dx = jacobian(Y,x);
+% Column vectors of Y(x)
+% for x that has multiple columns (needed for motion planning)
+Y1_fcn = @(x) [zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               cos(x(3,:));
+               -sin(x(3,:));
+               zeros(1,size(x,2))];
 
+Y2_fcn = @(x) [zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               -x(4,:);
+               zeros(1,size(x,2));
+               zeros(1,size(x,2))];
+
+Y3_fcn = @(x) [zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               sin(x(3,:));
+               cos(x(3,:));
+               zeros(1,size(x,2))];
+
+Y4_fcn = @(x) [zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               zeros(1,size(x,2));
+               -x(5,:);
+               zeros(1,size(x,2))];
+
+if na == 1
+    % 1-dim uncertainty
+    % a = [wind_x/m]: constant
+    Y = [0; 0; 0; cos_phi; -sin_phi; 0];
+    Y_fcn = @(x) [0; 0; 0; cos(x(3)); -sin(x(3)); 0];
+    Y_phi_fcn = @(x) 0;
+    Y_vx_fcn = @(x) cos(x(3));
+
+    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1);
+
+elseif na == 4
+    % 4-dim uncertainty
+    % a = [wind_x/m, drag_x/m, wind_z/m, drag_z/m]: constant
+    Y = [0, 0, 0, 0;
+         0, 0, 0, 0;
+         0, 0, 0, 0;
+         cos_phi, -x(4), sin_phi, 0;
+         -sin_phi, 0, cos_phi, -x(5);
+         0, 0, 0, 0];
+    Y_fcn = @(x) [0, 0, 0, 0;
+                  0, 0, 0, 0;
+                  0, 0, 0, 0;
+                  cos(x(3)), -x(4), sin(x(3)), 0;
+                  -sin(x(3)), 0, cos(x(3)), -x(5);
+                  0, 0, 0, 0];
+    Y_phi_fcn = @(x) [0, 0, 0, 0];
+    Y_vx_fcn = @(x) [cos(x(3)), -x(4), sin(x(3)), 0];
+
+    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1) + Y2_fcn(x) * a(2) + Y3_fcn(x) * a(3) + Y4_fcn(x) * a(4);
+end
+
+%% A function
 A = df_dx;
 for i = 1:size(Y,2)
     A = A + jacobian(Y(1:size(Y,1),i),x) * a(i); % TODO: check correctness
 end
 
-%{
-% TODO: the sizes are wrong below
-Y_fcn = @(x) [0, 0, 0;
-              0, 0, 0;
-              0, 0, 0;
-              cos(x(3,:)), sin(x(3,:)), 0;
-              -sin(x(3,:)), cos(x(3,:)), 0;
-              0, 0, 1];
-%}
-
-Y_fcn = @(x) [zeros(1,size(x,2));
-              zeros(1,size(x,2));
-              zeros(1,size(x,2));
-              cos(x(3,:));
-              -sin(x(3,:));
-              zeros(1,size(x,2))];
-Y_phi_fcn = @(x) 0;
-Y_vx_fcn = @(x) cos(x(3));
-
-%% A function (for motion planning only)
+% below is for motion planning only
 s = sdisplay(A);
 syms x [n 1]
 syms a [na 1]
@@ -115,4 +140,4 @@ plant.g = g;
 plant.g_perp = g_perp;
 plant.g_fcn = @(x) g;
 plant.Y_fcn = Y_fcn;
-plant.dynamics = @(x,u,a) f_fcn(x) + g * u + Y_fcn(x) * a;
+plant.dynamics = dynamics_fcn;

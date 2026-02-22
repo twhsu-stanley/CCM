@@ -40,30 +40,41 @@ state_set.p_lim = p_lim;
 state_set.pd_lim = pd_lim;
 state_set.vx_lim = vx_lim;
 state_set.vz_lim = vz_lim;
-state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2] * 0.001; % W_states to the front
+state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]; % W_states to the front
 
 % limits for uncertainty parameters
 a1_lim = 0.5;
-%a2_lim = 0.5;
-%a3_lim = 2.0;
+a2_lim = 0.5;
+a3_lim = 0.5;
+a4_lim = 0.5;
 state_set.a1_lim = a1_lim;
-%state_set.a2_lim = a2_lim;
-%state_set.a3_lim = a3_lim;
-state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.01; %; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2] * 0.001;
-
+state_set.a2_lim = a2_lim;
+state_set.a3_lim = a3_lim;
+state_set.a4_lim = a4_lim;
+if na == 1
+    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001;
+elseif na == 4
+    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.001;
+end
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
-state_set.lagrange_deg_W = 4;   % degree of Lagrangian for enforcing the bounds of W
+state_set.lagrange_deg_W = 2;   % degree of Lagrangian for enforcing the bounds of W
 state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
 %% Parameterization of W(x,a)
-W_states = [x(Wstates_index); a(1)]; % extend W_states to incorporate a
+W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
 v_W = monolist(W_states, 4); % monomials of W_states up to degree
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
-dv_W_da = jacobian(v_W, a(1)); % take derivatives w.r.t. a
+
+dv_W_da1 = jacobian(v_W, a(1)); % take derivatives w.r.t. a
+if na ==4
+    dv_W_da2 = jacobian(v_W, a(2));
+    dv_W_da3 = jacobian(v_W, a(3));
+    dv_W_da4 = jacobian(v_W, a(4));
+end
 
 W_coef = sdpvar(n,n,n_monos_W); % creates symbolic decision variables using YALMIP   
 W = zeros(n);
@@ -108,7 +119,13 @@ dv_W_dx = clean(dv_W_dx, 1e-10);
 
 s = sdisplay(W_fcn);
 s2 = sdisplay(dv_W_dx);
-s3 = sdisplay(dv_W_da);
+
+s3 = sdisplay(dv_W_da1);
+if na == 4
+    s4 = sdisplay(dv_W_da2);
+    s5 = sdisplay(dv_W_da3);
+    s6 = sdisplay(dv_W_da4);
+end
 
 syms x [n 1]
 syms a [na 1]
@@ -148,33 +165,82 @@ fprintf(fid, dW_dxi_fcn_str);
 fclose(fid);
 
 % Derivatives of W w.r.t. uncertainty parameter: a
-[n1,n2] = size(dv_W_da);
-syms dv_W_da_sym [n1 n2]
+[n1,n2] = size(dv_W_da1);
+syms dv_W_da1_sym [n1 n2]
 for i = 1:n1
     for j = 1:n2
-        dv_W_da_sym(i,j) = eval(s3{i,j});
+        dv_W_da1_sym(i,j) = eval(s3{i,j});
     end
 end
 dW_da1 = zeros(n);
 for i = 1:n_monos_W
-    dW_da1 = dW_da1 + W_coef(:,:,i) * dv_W_da_sym(i,1); 
+    dW_da1 = dW_da1 + W_coef(:,:,i) * dv_W_da1_sym(i,1); 
 end
 matlabFunction(dW_da1,'File','dW_da1','Vars',{x,a});
 dW_da1 = matlabFunction(dW_da1,'Vars',{x,a});
-%
-dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
+
+if na == 4
+    % for a2
+    [n1,n2] = size(dv_W_da2);
+    syms dv_W_da2_sym [n1 n2]
+    for i = 1:n1
+        for j = 1:n2
+            dv_W_da2_sym(i,j) = eval(s4{i,j});
+        end
+    end
+    dW_da2 = zeros(n);
+    for i = 1:n_monos_W
+        dW_da2 = dW_da2 + W_coef(:,:,i) * dv_W_da2_sym(i,1); 
+    end
+    matlabFunction(dW_da2,'File','dW_da2','Vars',{x,a});
+    dW_da2 = matlabFunction(dW_da2,'Vars',{x,a});
+
+    % for a3
+    [n1,n2] = size(dv_W_da3);
+    syms dv_W_da3_sym [n1 n2]
+    for i = 1:n1
+        for j = 1:n2
+            dv_W_da3_sym(i,j) = eval(s5{i,j});
+        end
+    end
+    dW_da3 = zeros(n);
+    for i = 1:n_monos_W
+        dW_da3 = dW_da3 + W_coef(:,:,i) * dv_W_da3_sym(i,1); 
+    end
+    matlabFunction(dW_da3,'File','dW_da3','Vars',{x,a});
+    dW_da3 = matlabFunction(dW_da3,'Vars',{x,a});
+
+    % for a4
+    [n1,n2] = size(dv_W_da4);
+    syms dv_W_da4_sym [n1 n2]
+    for i = 1:n1
+        for j = 1:n2
+            dv_W_da4_sym(i,j) = eval(s6{i,j});
+        end
+    end
+    dW_da4 = zeros(n);
+    for i = 1:n_monos_W
+        dW_da4 = dW_da4 + W_coef(:,:,i) * dv_W_da4_sym(i,1); 
+    end
+    matlabFunction(dW_da4,'File','dW_da4','Vars',{x,a});
+    dW_da4 = matlabFunction(dW_da4,'Vars',{x,a});
+
+end
+
+if na == 1
+    dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
+elseif na == 4
+    dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a) + (i==3) * dW_da3(x,a) + (i==4) * dW_da4(x,a);
+end
 dW_dai_fcn_str = func2str(dW_dai_fcn);
 dW_dai_fcn_str = strcat('function dW_dai = dW_dai_fcn(i,x,a)\n', 'dW_dai = ', dW_dai_fcn_str(9:end), ';');
 fid = fopen('dW_dai_fcn.m','w');
 fprintf(fid, dW_dai_fcn_str);
 fclose(fid);
 
-%dW_dt_fcn = @(x,a) dW_dphi(x,a) * (f_phi_fcn(x) + Y_phi_fcn(x)*a) + dW_dvx(x,a) * (f_vx_fcn(x) + Y_vx_fcn(x)*a); % dW_da1 * da/dt = dW_da1 * 0 = 0
-
 controller.W_fcn = W_fcn;
 controller.dW_dxi_fcn = dW_dxi_fcn;
 controller.dW_dai_fcn = dW_dai_fcn;
-%controller.dW_dt_fcn = dW_dt_fcn;
 
 %% Check CCM conditions (and compute the tubes for planning)
 % TODO: remove some fields that cannot be properly saved
