@@ -12,14 +12,14 @@ load(file_controller);
 n = 6;
 nu = 2;
 
-sim_config.dt_sim = 1/100;
+sim_config.dt_sim = 1/500;
 sim_config.replan_nom_traj = 1;    % whether to replan a trajectory
 sim_config.include_obs = 0;        % whether to include the obstacles 
 sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
-sim_config.duration = 2;           % sim duration % will be modified if replan_nom_traj == 1
+sim_config.duration = 10;           % sim duration % will be modified if replan_nom_traj == 1
 x0 = [0; 0; 0; 0; 0; 0];
-xF = [5; 5; 0; 0; 0; 0];              % final state
-umax = 3 * plant.m * plant.grav;      % control limit
+xF = [10; 10; 0; 0; 0; 0];              % final state
+umax = 2 * plant.m * plant.grav;      % control limit
 u_bnd = [0 0; umax umax]';
 x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state_set.pd_lim;
           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
