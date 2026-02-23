@@ -54,12 +54,12 @@ state_set.a4_lim = a4_lim;
 if na == 1
     state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001;
 elseif na == 4
-    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.001;
+    state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.001;
 end
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
 state_set.lagrange_deg_W = 2;   % degree of Lagrangian for enforcing the bounds of W
-state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
+state_set.lagrange_deg_ccm = 2; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
@@ -259,6 +259,6 @@ plant.state_set = state_set;
 
 %% Save data
 if save_rsts == 1
-    file_name = ['uccm_' num2str(controller.lambda) '.mat'];
+    file_name = ['uccm_' num2str(controller.lambda) '_na' num2str(na) '.mat'];
     save(file_name,'plant','controller','state_set');
 end

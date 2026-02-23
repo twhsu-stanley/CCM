@@ -1,7 +1,6 @@
 
 *.ninja
 *.asv
-*.mat
 *.fig
 *.mexw64
 
