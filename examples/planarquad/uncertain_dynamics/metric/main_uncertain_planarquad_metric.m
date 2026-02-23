@@ -53,6 +53,8 @@ state_set.a3_lim = a3_lim;
 state_set.a4_lim = a4_lim;
 if na == 1
     state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2] * 0.001;
+elseif na == 2
+    state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2] * 0.001;
 elseif na == 4
     state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.001;
 end
@@ -65,13 +67,14 @@ state_set.lagrange_deg_ccm = 2; % degree of Lagrangian for enforcing the 2nd str
 
 %% Parameterization of W(x,a)
 W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
-v_W = monolist(W_states, 3); % monomials of W_states up to degree
+v_W = monolist(W_states, 4); % monomials of W_states up to degree
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 
 dv_W_da1 = jacobian(v_W, a(1)); % take derivatives w.r.t. a
-if na == 4
+if na >= 2
     dv_W_da2 = jacobian(v_W, a(2));
+elseif na >= 4
     dv_W_da3 = jacobian(v_W, a(3));
     dv_W_da4 = jacobian(v_W, a(4));
 end
@@ -119,10 +122,10 @@ dv_W_dx = clean(dv_W_dx, 1e-10);
 
 s = sdisplay(W_fcn);
 s2 = sdisplay(dv_W_dx);
-
 s3 = sdisplay(dv_W_da1);
-if na == 4
+if na >= 2
     s4 = sdisplay(dv_W_da2);
+elseif na >= 4
     s5 = sdisplay(dv_W_da3);
     s6 = sdisplay(dv_W_da4);
 end
@@ -179,7 +182,7 @@ end
 matlabFunction(dW_da1,'File','dW_da1','Vars',{x,a});
 dW_da1 = matlabFunction(dW_da1,'Vars',{x,a});
 
-if na == 4
+if na >= 2
     % for a2
     [n1,n2] = size(dv_W_da2);
     syms dv_W_da2_sym [n1 n2]
@@ -195,6 +198,7 @@ if na == 4
     matlabFunction(dW_da2,'File','dW_da2','Vars',{x,a});
     dW_da2 = matlabFunction(dW_da2,'Vars',{x,a});
 
+elseif na >= 4
     % for a3
     [n1,n2] = size(dv_W_da3);
     syms dv_W_da3_sym [n1 n2]
@@ -229,6 +233,8 @@ end
 
 if na == 1
     dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
+elseif na == 2
+    dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a);
 elseif na == 4
     dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a) + (i==3) * dW_da3(x,a) + (i==4) * dW_da4(x,a);
 end

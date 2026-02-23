@@ -5,7 +5,7 @@ plant.J = 0.00383;  % (kgm^2), moment of inertia
 
 n = 6;  % # of states
 nu = 2; % # of inputs 
-na = 4; % # of parameters % na = 4 or 1
+na = 2; % # of parameters % na = 1, 2, or 4
 
 x = sdpvar(n,1); % state x = [px, pz, phi, vx, vz, phi_dot]
 x_store = x;
@@ -82,6 +82,25 @@ if na == 1
     Y_vx_fcn = @(x) cos(x(3));
 
     dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1);
+elseif na == 2
+    % 2-dim uncertainty
+    % a = [wind_x/m, drag_x/m]: constant
+    Y = [0, 0;
+         0, 0;
+         0, 0;
+         cos_phi, -x(4);
+         -sin_phi, 0;
+         0, 0];
+    Y_fcn = @(x) [0, 0;
+                  0, 0;
+                  0, 0;
+                  cos(x(3)), -x(4);
+                  -sin(x(3)), 0;
+                  0, 0];
+    Y_phi_fcn = @(x) [0, 0];
+    Y_vx_fcn = @(x) [cos(x(3)), -x(4)];
+
+    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1) + Y2_fcn(x) * a(2);
 
 elseif na == 4
     % 4-dim uncertainty
