@@ -6,7 +6,7 @@ addpath('../../utilities');
 addpath('../../planning');
 
 %% Simulation settings
-file_controller = '../metric/uccm_0.8.mat'; % uCCM
+file_controller = '../metric/uccm_0.8_na2.mat'; % uCCM
 load(file_controller);
 
 n = 6;
@@ -16,7 +16,7 @@ sim_config.dt_sim = 1/100;
 sim_config.replan_nom_traj = 0;    % whether to replan a trajectory
 sim_config.include_obs = 0;        % whether to include the obstacles 
 sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
-sim_config.duration = 2;           % sim duration % will be modified if replan_nom_traj == 1
+sim_config.duration = 6;           % sim duration % will be modified if replan_nom_traj == 1
 x0 = [0; 0; 0; 0; 0; 0];
 xF = [6; 6; 0; 0; 0; 0];              % final state
 umax = 3 * plant.m * plant.grav;      % control limit
@@ -25,7 +25,7 @@ x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state
           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Set uncertainty parameter: a
-a = 0.4;
+a = [-0.3; 0.4];
 controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
 controller.dW_dai_fcn = @(x) controller.dW_dai_fcn(1,x,a); % TODO: should work for higher-dim a
