@@ -44,9 +44,9 @@ state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-
 
 % limits for uncertainty parameters
 a1_lim = 0.5;
-a2_lim = 0.25;
+a2_lim = 0.2;
 a3_lim = 0.5;
-a4_lim = 0.25;
+a4_lim = 0.2;
 state_set.a1_lim = a1_lim;
 state_set.a2_lim = a2_lim;
 state_set.a3_lim = a3_lim;
