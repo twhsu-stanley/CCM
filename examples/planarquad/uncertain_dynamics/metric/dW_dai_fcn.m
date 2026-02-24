@@ -1,2 +1,2 @@
 function dW_dai = dW_dai_fcn(i,x,a)
-dW_dai =(i==1)*dW_da1(x,a)+(i==2)*dW_da2(x,a);
+dW_dai =(i==1)*dW_da1(x,a)+(i==2)*dW_da2(x,a)+(i==3)*dW_da3(x,a)+(i==4)*dW_da4(x,a);
