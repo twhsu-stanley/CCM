@@ -103,7 +103,7 @@ else
     F = [F sos(yMy) sos(y_W_Wlower_y) sos(y_Wupper_W_y) W_lower>= controller.W_lower_bound  W_upper*eye(n)>=W_bar]; 
 end
 
-ops = sdpsettings('solver','mosek','sos.numblkdg',1e-7); %, Need to try this
+ops = sdpsettings('solver','mosek','sos.numblkdg',1e-7); % Need to try this (og: 1e-7)
 
 [sol, v, Q, res] = solvesos(F, obj, ops, paras);
 

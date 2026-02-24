@@ -44,9 +44,9 @@ state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-
 
 % limits for uncertainty parameters
 a1_lim = 0.5;
-a2_lim = 0.2;
+a2_lim = 0.25;
 a3_lim = 0.5;
-a4_lim = 0.2;
+a4_lim = 0.25;
 state_set.a1_lim = a1_lim;
 state_set.a2_lim = a2_lim;
 state_set.a3_lim = a3_lim;
@@ -87,8 +87,10 @@ dv_W_da1 = jacobian(v_W, a(1)); % take derivatives w.r.t. a
 if na >= 2
     dv_W_da2 = jacobian(v_W, a(2));
 end
-if na >= 4
+if na >= 3
     dv_W_da3 = jacobian(v_W, a(3));
+end
+if na >= 4
     dv_W_da4 = jacobian(v_W, a(4));
 end
 
@@ -139,8 +141,10 @@ s3 = sdisplay(dv_W_da1);
 if na >= 2
     s4 = sdisplay(dv_W_da2);
 end
-if na >= 4
+if na >= 3
     s5 = sdisplay(dv_W_da3);
+end
+if na >= 4
     s6 = sdisplay(dv_W_da4);
 end
 
@@ -212,7 +216,7 @@ if na >= 2
     matlabFunction(dW_da2,'File',['na',num2str(na),'/dW_da2'],'Vars',{x,a});
     dW_da2 = matlabFunction(dW_da2,'Vars',{x,a});
 end
-if na >= 4
+if na >= 3
     % for a3
     [n1,n2] = size(dv_W_da3);
     syms dv_W_da3_sym [n1 n2]
@@ -227,7 +231,8 @@ if na >= 4
     end
     matlabFunction(dW_da3,'File',['na',num2str(na),'/dW_da3'],'Vars',{x,a});
     dW_da3 = matlabFunction(dW_da3,'Vars',{x,a});
-
+end
+if na >= 4
     % for a4
     [n1,n2] = size(dv_W_da4);
     syms dv_W_da4_sym [n1 n2]
@@ -242,7 +247,6 @@ if na >= 4
     end
     matlabFunction(dW_da4,'File',['na',num2str(na),'/dW_da4'],'Vars',{x,a});
     dW_da4 = matlabFunction(dW_da4,'Vars',{x,a});
-
 end
 
 if na == 1
