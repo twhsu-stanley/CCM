@@ -66,21 +66,28 @@ state_set.lagrange_deg_ccm = 2; % degree of Lagrangian for enforcing the 2nd str
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
 %% Parameterization of W(x,a)
-W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
-% Original
-v_W = monolist(W_states, 3); % monomials of W_states up to degree
-% TEST 1
-%v_W = [v_W; monolist(x(Wstates_index), 4, 4)];
-%v_W = [v_W; kron(monolist(x(Wstates_index), 4, 4), monolist(a, 1))];
-% TEST 2
-%v_W = kron(monolist(x(Wstates_index), 1), monolist(a, 1));
+if na == 1
+    W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
+    v_W = monolist(W_states, 4);
+elseif na == 2
+    W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
+    v_W = monolist(W_states, 4); % monomials of W_states up to some degree
+elseif na == 4
+    W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
+    v_W = monolist(W_states, 3); % monomials of W_states up to some degree
+    % TEST 1
+    %v_W = [v_W; kron(monolist(x(Wstates_index), 4, 4), monolist(a, 1))];
+    % TEST 2
+    %v_W = kron(monolist(x(Wstates_index), 3), monolist(a(1:3), 2));
+end
 n_monos_W = length(v_W);
 dv_W_dx = jacobian(v_W, x(Wstates_index)); % take derivatives w.r.t. x(Wstates_index)
 
 dv_W_da1 = jacobian(v_W, a(1)); % take derivatives w.r.t. a
 if na >= 2
     dv_W_da2 = jacobian(v_W, a(2));
-elseif na >= 4
+end
+if na >= 4
     dv_W_da3 = jacobian(v_W, a(3));
     dv_W_da4 = jacobian(v_W, a(4));
 end
@@ -131,7 +138,8 @@ s2 = sdisplay(dv_W_dx);
 s3 = sdisplay(dv_W_da1);
 if na >= 2
     s4 = sdisplay(dv_W_da2);
-elseif na >= 4
+end
+if na >= 4
     s5 = sdisplay(dv_W_da3);
     s6 = sdisplay(dv_W_da4);
 end
@@ -144,7 +152,7 @@ for i = 1:n
         W_fcn(i,j) = eval(s{i,j});
     end
 end
-matlabFunction(W_fcn,'File','W_fcn','Vars',{x,a});
+matlabFunction(W_fcn,'File',['na',num2str(na),'/W_fcn'],'Vars',{x,a});
 W_fcn = matlabFunction(W_fcn,'Vars',{x,a});
 
 % Derivatives of W w.r.t. states
@@ -161,15 +169,15 @@ for i = 1:n_monos_W
     dW_dphi = dW_dphi + W_coef(:,:,i) * dv_W_dx_sym(i,1); 
     dW_dvx = dW_dvx + W_coef(:,:,i) * dv_W_dx_sym(i,2);
 end
-matlabFunction(dW_dphi,'File','dW_dphi','Vars',{x,a});
-matlabFunction(dW_dvx,'File','dW_dvx','Vars',{x,a});
+matlabFunction(dW_dphi,'File',['na',num2str(na),'/dW_dphi'],'Vars',{x,a});
+matlabFunction(dW_dvx,'File',['na',num2str(na),'/dW_dvx'],'Vars',{x,a});
 dW_dphi = matlabFunction(dW_dphi,'Vars',{x,a});
 dW_dvx = matlabFunction(dW_dvx,'Vars',{x,a});
 %
 dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a) + (i==4) * dW_dvx(x,a);
 dW_dxi_fcn_str = func2str(dW_dxi_fcn);
 dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dxi_fcn_str(9:end), ';');
-fid = fopen('dW_dxi_fcn.m','w');
+fid = fopen(['na',num2str(na),'/dW_dxi_fcn.m'],'w');
 fprintf(fid, dW_dxi_fcn_str);
 fclose(fid);
 
@@ -185,7 +193,7 @@ dW_da1 = zeros(n);
 for i = 1:n_monos_W
     dW_da1 = dW_da1 + W_coef(:,:,i) * dv_W_da1_sym(i,1); 
 end
-matlabFunction(dW_da1,'File','dW_da1','Vars',{x,a});
+matlabFunction(dW_da1,'File',['na',num2str(na),'/dW_da1'],'Vars',{x,a});
 dW_da1 = matlabFunction(dW_da1,'Vars',{x,a});
 
 if na >= 2
@@ -201,10 +209,10 @@ if na >= 2
     for i = 1:n_monos_W
         dW_da2 = dW_da2 + W_coef(:,:,i) * dv_W_da2_sym(i,1); 
     end
-    matlabFunction(dW_da2,'File','dW_da2','Vars',{x,a});
+    matlabFunction(dW_da2,'File',['na',num2str(na),'/dW_da2'],'Vars',{x,a});
     dW_da2 = matlabFunction(dW_da2,'Vars',{x,a});
-
-elseif na >= 4
+end
+if na >= 4
     % for a3
     [n1,n2] = size(dv_W_da3);
     syms dv_W_da3_sym [n1 n2]
@@ -217,7 +225,7 @@ elseif na >= 4
     for i = 1:n_monos_W
         dW_da3 = dW_da3 + W_coef(:,:,i) * dv_W_da3_sym(i,1); 
     end
-    matlabFunction(dW_da3,'File','dW_da3','Vars',{x,a});
+    matlabFunction(dW_da3,'File',['na',num2str(na),'/dW_da3'],'Vars',{x,a});
     dW_da3 = matlabFunction(dW_da3,'Vars',{x,a});
 
     % for a4
@@ -232,7 +240,7 @@ elseif na >= 4
     for i = 1:n_monos_W
         dW_da4 = dW_da4 + W_coef(:,:,i) * dv_W_da4_sym(i,1); 
     end
-    matlabFunction(dW_da4,'File','dW_da4','Vars',{x,a});
+    matlabFunction(dW_da4,'File',['na',num2str(na),'/dW_da4'],'Vars',{x,a});
     dW_da4 = matlabFunction(dW_da4,'Vars',{x,a});
 
 end
@@ -246,7 +254,7 @@ elseif na == 4
 end
 dW_dai_fcn_str = func2str(dW_dai_fcn);
 dW_dai_fcn_str = strcat('function dW_dai = dW_dai_fcn(i,x,a)\n', 'dW_dai = ', dW_dai_fcn_str(9:end), ';');
-fid = fopen('dW_dai_fcn.m','w');
+fid = fopen(['na',num2str(na),'/dW_dai_fcn.m'],'w');
 fprintf(fid, dW_dai_fcn_str);
 fclose(fid);
 
@@ -271,6 +279,6 @@ plant.state_set = state_set;
 
 %% Save data
 if save_rsts == 1
-    file_name = ['uccm_' num2str(controller.lambda) '_na' num2str(na) '.mat'];
+    file_name = ['na',num2str(na),'/uccm_' num2str(controller.lambda) '_na' num2str(na) '.mat'];
     save(file_name,'plant','controller','state_set');
 end

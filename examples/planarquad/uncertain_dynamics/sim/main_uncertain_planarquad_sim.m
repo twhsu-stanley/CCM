@@ -6,14 +6,14 @@ addpath('../../utilities');
 addpath('../../planning');
 
 %% Simulation settings
-file_controller = '../metric/uccm_0.8_na2.mat'; % uCCM
+file_controller = '../metric/na4/uccm_0.8_na4.mat'; % uCCM
 load(file_controller);
 
 n = 6;
 nu = 2;
 
 sim_config.dt_sim = 1/100;
-sim_config.replan_nom_traj = 0;    % whether to replan a trajectory
+sim_config.replan_nom_traj = 1;    % whether to replan a trajectory
 sim_config.include_obs = 0;        % whether to include the obstacles 
 sim_config.include_tube = 0;       % whether to tighten the state bounds in planning a nominal trajectory
 sim_config.duration = 6;           % sim duration % will be modified if replan_nom_traj == 1
@@ -25,7 +25,7 @@ x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state
           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Set uncertainty parameter: a
-a = [-0.3; 0.4];
+a = [-0.4; 0.2; -0.4; 0.2];
 controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
 controller.dW_dai_fcn = @(x) controller.dW_dai_fcn(1,x,a); % TODO: should work for higher-dim a
@@ -61,7 +61,7 @@ xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
-x0 = [0.0;0.0;0;0;0;0];
+x0 = [0.5; 0.5; 0.1; 0.5; 0; 0.8];
 x = x0;
 
 options = odeset('RelTol',1e-2);
