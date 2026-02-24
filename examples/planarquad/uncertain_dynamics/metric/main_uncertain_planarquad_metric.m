@@ -32,7 +32,7 @@ Wstates_index = [3 4]; % indices of states on which the CCM depends
 consider_state_set = 1; % whether to consider a compact set for the states when formulating the constraints
 
 % limits for states
-p_lim = pi/3;
+p_lim = pi/4;
 pd_lim = pi/3;
 vx_lim = 1.0;
 vz_lim = 1.0;
@@ -52,16 +52,16 @@ state_set.a2_lim = a2_lim;
 state_set.a3_lim = a3_lim;
 state_set.a4_lim = a4_lim;
 if na == 1
-    state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2] * 0.001;
+    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001;
 elseif na == 2
-    state_set.box_lim = [state_set.box_lim * 0.1; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2] * 0.001;
+    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2] * 0.001;
 elseif na == 4
-    state_set.box_lim = [state_set.box_lim * 0.001; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.01;
+    state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2; a3_lim^2-a(3)^2; a4_lim^2-a(4)^2] * 0.001;
 end
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
 state_set.lagrange_deg_W = 2;   % degree of Lagrangian for enforcing the bounds of W
-state_set.lagrange_deg_ccm = 2; % degree of Lagrangian for enforcing the 2nd strong ccm condition
+state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
 
@@ -73,7 +73,7 @@ elseif na == 2
     W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
     v_W = monolist(W_states, 4); % monomials of W_states up to some degree
 elseif na == 4
-    W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
+    W_states = [x(Wstates_index); a(2)]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
     % TEST 1
     %v_W = [v_W; kron(monolist(x(Wstates_index), 4, 4), monolist(a, 1))];
