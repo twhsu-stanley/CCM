@@ -73,7 +73,7 @@ elseif na == 2
     W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
     v_W = monolist(W_states, 4); % monomials of W_states up to some degree
 elseif na == 4
-    W_states = [x(Wstates_index); a(2)]; % extend W_states to incorporate a
+    W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
     % TEST 1
     %v_W = [v_W; kron(monolist(x(Wstates_index), 4, 4), monolist(a, 1))];

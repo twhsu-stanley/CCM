@@ -25,7 +25,7 @@ x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state
           inf  inf  state_set.p_lim  state_set.vx_lim   state_set.vz_lim   state_set.pd_lim]';
 
 %% Set uncertainty parameter: a
-a = [-0.4; 0.12; -0.4; 0.15];
+a = [-0.4; 0.12; 0.3; 0.15];
 controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
 controller.dW_dai_fcn = @(x) controller.dW_dai_fcn(1,x,a); % TODO: should work for higher-dim a
@@ -61,7 +61,7 @@ xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
-x0 = [0.1; 0.1; 0.1; 0.0; 0.0; 0.0];
+x0 = [-0.1; 0.5; pi/5; 0.0; 0.0; pi/4];
 x = x0;
 
 options = odeset('RelTol',1e-2);
