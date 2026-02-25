@@ -60,7 +60,7 @@ elseif na == 4
 end
 state_set.num_consts_4_W_states = 2; % # of constraints in box_lim that involve states on which the metric W depends
 state_set.other_lim_states = [x(6); x(5)]; 
-state_set.lagrange_deg_W = 2;   % degree of Lagrangian for enforcing the bounds of W
+state_set.lagrange_deg_W = 4;   % degree of Lagrangian for enforcing the bounds of W
 state_set.lagrange_deg_ccm = 4; % degree of Lagrangian for enforcing the 2nd strong ccm condition
 
 % NOTE: state_set.box_lim must be defined as [limits for W_states; limits for other states; limits for a's]
