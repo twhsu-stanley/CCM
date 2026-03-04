@@ -43,9 +43,9 @@ state_set.vz_lim = vz_lim;
 state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]; % W_states to the front
 
 % limits for uncertainty parameters
-a1_lim = 0.5;
+a1_lim = 0.2;
 a2_lim = 0.2;
-a3_lim = 0.5;
+a3_lim = 0.2;
 a4_lim = 0.2;
 state_set.a1_lim = a1_lim;
 state_set.a2_lim = a2_lim;
@@ -71,13 +71,11 @@ if na == 1
     v_W = monolist(W_states, 4);
 elseif na == 2
     W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
-    v_W = monolist(W_states, 4); % monomials of W_states up to some degree
+    v_W = monolist(W_states, 3); % monomials of W_states up to some degree
+    %v_W = kron(monolist(x(Wstates_index), 3), monolist(a, 1));
 elseif na == 4
     W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
-    % TEST 1
-    %v_W = [v_W; kron(monolist(x(Wstates_index), 4, 4), monolist(a, 1))];
-    % TEST 2
     %v_W = kron(monolist(x(Wstates_index), 3), monolist(a(1:3), 2));
 end
 n_monos_W = length(v_W);
