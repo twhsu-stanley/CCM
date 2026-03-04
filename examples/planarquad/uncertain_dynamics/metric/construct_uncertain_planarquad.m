@@ -4,7 +4,7 @@ plant.m = 0.486;    % (m) mass of the quad rotor
 plant.J = 0.00383;  % (kgm^2), moment of inertia
 
 n = 6;  % # of states
-nu = 2; % # of inputs 
+nu = 2; % # of inputs
 na = 4; % # of parameters % na = 1, 2, or 4
 
 x = sdpvar(n,1); % state x = [px, pz, phi, vx, vz, phi_dot]
