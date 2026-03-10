@@ -5,7 +5,7 @@ plant.J = 0.00383;  % (kgm^2), moment of inertia
 
 n = 6;  % # of states
 nu = 2; % # of inputs
-na = 2; % # of parameters % na = 1, 2, or 4
+na = 1; % # of parameters % na = 1 or 3
 
 x = sdpvar(n,1); % state x = [px, pz, phi, vx, vz, phi_dot]
 x_store = x;
@@ -45,83 +45,50 @@ g_perp = [eye(4); zeros(2,4)];
 
 % Column vectors of Y(x)
 % for x that has multiple columns (needed for motion planning)
-Y1_fcn = @(x) [zeros(1,size(x,2));
+Y1_fcn = @(x) [x(4,:) .* x(3,:).^4;
+               x(5,:) .* x(3,:).^4;
                zeros(1,size(x,2));
                zeros(1,size(x,2));
-               cos(x(3,:));
-               -sin(x(3,:));
+               zeros(1,size(x,2));
                zeros(1,size(x,2))];
 
-Y2_fcn = @(x) [zeros(1,size(x,2));
+Y2_fcn = @(x) [x(5,:) .* x(3,:).^5;
+               x(4,:) .* x(3,:).^5;
                zeros(1,size(x,2));
                zeros(1,size(x,2));
-               -x(4,:);
                zeros(1,size(x,2));
                zeros(1,size(x,2))];
 
 Y3_fcn = @(x) [zeros(1,size(x,2));
                zeros(1,size(x,2));
                zeros(1,size(x,2));
-               sin(x(3,:));
-               cos(x(3,:));
-               zeros(1,size(x,2))];
-
-Y4_fcn = @(x) [zeros(1,size(x,2));
+               ones(1,size(x,2));
                zeros(1,size(x,2));
-               zeros(1,size(x,2));
-               zeros(1,size(x,2));
-               -x(5,:);
                zeros(1,size(x,2))];
 
 if na == 1
     % 1-dim uncertainty
-    % a = [wind_x/m]: constant
-    Y = [0; 0; 0; cos_phi; -sin_phi; 0];
-    Y_fcn = @(x) [0; 0; 0; cos(x(3)); -sin(x(3)); 0];
-    Y_phi_fcn = @(x) 0;
-    Y_vx_fcn = @(x) cos(x(3));
+    Y = [0; 0; 0; 1; 0; 0];
+    Y_fcn = @(x) [0; 0; 0; 1; 0; 0];
 
-    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1);
-    
-elseif na == 2
-    % 2-dim uncertainty
-    % a = [wind_x/m, drag_x/m]: constant
-    Y = [0, 0;
-         0, 0;
-         0, 0;
-         cos_phi, -x(4);
-         -sin_phi, 0;
-         0, 0];
-    Y_fcn = @(x) [0, 0;
-                  0, 0;
-                  0, 0;
-                  cos(x(3)), -x(4);
-                  -sin(x(3)), 0;
-                  0, 0];
-    Y_phi_fcn = @(x) [0, 0];
-    Y_vx_fcn = @(x) [cos(x(3)), -x(4)];
+    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y3_fcn(x) * a(1);
 
-    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1) + Y2_fcn(x) * a(2);
+elseif na == 3
+    % 3-dim uncertainty
+    Y = [x(4) * x(3)^4, x(5) * x(3)^5, 0;
+         x(5) * x(3)^4, x(4) * x(3)^5, 0;
+         0, 0, x(6);
+         0, 0, 0;
+         0, 0, 0;
+         0, 0, 0];
+    Y_fcn = @(x) [x(4) * x(3)^4, x(5) * x(3)^5, 0;
+                  x(5) * x(3)^4, x(4) * x(3)^5, 0;
+                  0, 0, x(6);
+                  0, 0, 0;
+                  0, 0, 0;
+                  0, 0, 0];
 
-elseif na == 4
-    % 4-dim uncertainty
-    % a = [wind_x/m, drag_x/m, wind_z/m, drag_z/m]: constant
-    Y = [0, 0, 0, 0;
-         0, 0, 0, 0;
-         0, 0, 0, 0;
-         cos_phi, -x(4), sin_phi, 0;
-         -sin_phi, 0, cos_phi, -x(5);
-         0, 0, 0, 0];
-    Y_fcn = @(x) [0, 0, 0, 0;
-                  0, 0, 0, 0;
-                  0, 0, 0, 0;
-                  cos(x(3)), -x(4), sin(x(3)), 0;
-                  -sin(x(3)), 0, cos(x(3)), -x(5);
-                  0, 0, 0, 0];
-    Y_phi_fcn = @(x) [0, 0, 0, 0];
-    Y_vx_fcn = @(x) [cos(x(3)), -x(4), sin(x(3)), 0];
-
-    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1) + Y2_fcn(x) * a(2) + Y3_fcn(x) * a(3) + Y4_fcn(x) * a(4);
+    dynamics_fcn = @(x,u,a) f_fcn(x) + g * u + Y1_fcn(x) * a(1) + Y2_fcn(x) * a(2) + Y3_fcn(x) * a(3);
 end
 
 %% A function

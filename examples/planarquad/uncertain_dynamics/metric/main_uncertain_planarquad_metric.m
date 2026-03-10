@@ -13,7 +13,8 @@ yalmip('clear');
 save_rsts = 1; % whether to save the results to a file 
 
 %% Load plant
-construct_uncertain_planarquad;  
+construct_uncertain_planarquad;
+%construct_uncertain_planarquad2; 
 
 %% Settings for searching CCM
 controller.type = "CCM";
@@ -43,9 +44,9 @@ state_set.vz_lim = vz_lim;
 state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]; % W_states to the front
 
 % limits for uncertainty parameters
-a1_lim = 0.5;
-a2_lim = 0.5;
-a3_lim = 0.2;
+a1_lim = 3.0;
+a2_lim = 3.0;
+a3_lim = 0.5;
 a4_lim = 0.2;
 state_set.a1_lim = a1_lim;
 state_set.a2_lim = a2_lim;
@@ -53,6 +54,7 @@ state_set.a3_lim = a3_lim;
 state_set.a4_lim = a4_lim;
 if na == 1
     state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001;
+    %state_set.box_lim = state_set.box_lim * 0.001;
 elseif na == 2
     state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2] * 0.001;
 elseif na == 4
@@ -70,9 +72,11 @@ if na == 1
     W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
     v_W = monolist(W_states, 4);
 elseif na == 2
-    W_states = [x(Wstates_index); a(2)]; % extend W_states to incorporate a
-    v_W = monolist(W_states, 4); % monomials of W_states up to some degree
-    %v_W = kron(monolist(x(Wstates_index), 3), monolist(a, 1));
+    W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
+    v_W = monolist(W_states, 3); % monomials of W_states up to some degree
+elseif na == 3
+    W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
+    v_W = monolist(W_states, 3); % monomials of W_states up to some degree
 elseif na == 4
     W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
@@ -122,7 +126,7 @@ controller.w_lower = w_lower;
 controller.W_bar = W_bar;
 
 %% Extract functions W_fcn & dW_fcn
-W_coef = value(W_coef);  
+W_coef = value(W_coef);
 W_coef(abs(W_coef) <= 1e-10) = 0;
 
 x = x_store; % must ensure that v_W and s contain "x" instead of "x_store"
@@ -251,6 +255,8 @@ if na == 1
     dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a);
 elseif na == 2
     dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a);
+elseif na == 3
+    dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a) + (i==3) * dW_da3(x,a);
 elseif na == 4
     dW_dai_fcn = @(i,x,a) (i==1) * dW_da1(x,a) + (i==2) * dW_da2(x,a) + (i==3) * dW_da3(x,a) + (i==4) * dW_da4(x,a);
 end
