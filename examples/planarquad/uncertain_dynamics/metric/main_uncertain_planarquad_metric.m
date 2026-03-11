@@ -35,7 +35,7 @@ consider_state_set = 1; % whether to consider a compact set for the states when 
 % limits for states
 p_lim = pi/4;
 pd_lim = pi/3;
-vx_lim = 1.0;
+vx_lim = 1.5;
 vz_lim = 1.0;
 state_set.p_lim = p_lim;
 state_set.pd_lim = pd_lim;
@@ -44,8 +44,8 @@ state_set.vz_lim = vz_lim;
 state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]; % W_states to the front
 
 % limits for uncertainty parameters
-a1_lim = 3.0;
-a2_lim = 3.0;
+a1_lim = 1.0;
+a2_lim = 0.6;
 a3_lim = 0.5;
 a4_lim = 0.2;
 state_set.a1_lim = a1_lim;
@@ -54,7 +54,6 @@ state_set.a3_lim = a3_lim;
 state_set.a4_lim = a4_lim;
 if na == 1
     state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2] * 0.001;
-    %state_set.box_lim = state_set.box_lim * 0.001;
 elseif na == 2
     state_set.box_lim = [state_set.box_lim; a1_lim^2-a(1)^2; a2_lim^2-a(2)^2] * 0.001;
 elseif na == 4
