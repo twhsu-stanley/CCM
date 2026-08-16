@@ -6,7 +6,7 @@ addpath('../../utilities');
 addpath('../../planning');
 
 %% Simulation settings
-file_controller = '../metric/na1/uccm_0.8_na1.mat'; % uCCM
+file_controller = '../metric/na4/uccm_0.8_na4.mat'; % uCCM
 load(file_controller);
 
 n = 6;
@@ -25,7 +25,7 @@ x_bnd = [-inf -inf -state_set.p_lim -state_set.vx_lim, -state_set.vz_lim, -state
           inf  inf  state_set.p_lim  state_set.vx_lim,   state_set.vz_lim   state_set.pd_lim]';
 
 %% Set uncertainty parameter: a
-a = [0.0];
+a = [0.5; 0.5; 0.5; 0.5];
 controller.W_fcn = @(x) controller.W_fcn(x,a);
 controller.dW_dxi_fcn = @(i,x) controller.dW_dxi_fcn(i,x,a);
 controller.dW_dai_fcn = @(x) controller.dW_dai_fcn(1,x,a); % TODO: should work for higher-dim a
@@ -61,7 +61,7 @@ xnomTraj = zeros(plant.n, T_steps);
 unomTraj = zeros(plant.nu, T_steps);
 
 % Initialization
-x0 = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0];
+x0 = [1.2; -1.0; 0.02; 0.0; 0.0; 0.0];
 x = x0;
 
 options = odeset('RelTol',1e-9);
@@ -87,9 +87,7 @@ for i = 1:T_steps
     
     % Propagate state with zero-hold for control inputs
     if i < T_steps
-        a = 0.0;
         [t_plus, x_plus] = ode45(@(t,x) planarquad_dyn(t, x, uc, a, plant), [times(i) times(i+1)], x, options);
-        %[t_plus, x_plus] = ode23s(@(t,x) planarquad_dyn(t, x, uc, a, plant, controller), [times(i) times(i+1)], x, options);
         x = x_plus(end,:)';
     end
 

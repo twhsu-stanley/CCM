@@ -17,7 +17,7 @@ construct_uncertain_planarquad;
 
 %% Settings for searching CCM
 controller.type = "CCM";
-lambda = 0.6; % 1.2
+lambda = 0.8; % 1.2
 controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4]; % indices of states on which the CCM depends
@@ -178,7 +178,7 @@ matlabFunction(dW_dvx,'File',['na',num2str(na),'/dW_dvx'],'Vars',{x,a});
 dW_dphi = matlabFunction(dW_dphi,'Vars',{x,a});
 dW_dvx = matlabFunction(dW_dvx,'Vars',{x,a});
 %
-dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a);% + (i==4) * dW_dvx(x,a);
+dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a) + (i==4) * dW_dvx(x,a);
 dW_dxi_fcn_str = func2str(dW_dxi_fcn);
 dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dxi_fcn_str(9:end), ';');
 fid = fopen(['na',num2str(na),'/dW_dxi_fcn.m'],'w');
