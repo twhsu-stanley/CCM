@@ -14,11 +14,10 @@ save_rsts = 1; % whether to save the results to a file
 
 %% Load plant
 construct_uncertain_planarquad;
-%construct_uncertain_planarquad2; 
 
 %% Settings for searching CCM
 controller.type = "CCM";
-lambda = 0.8; % 1.2
+lambda = 0.6; % 1.2
 controller.lambda = lambda;
 controller.W_lower_bound = 1e-2; % lower bound for the dual metric W
 Wstates_index = [3 4]; % indices of states on which the CCM depends
@@ -35,7 +34,7 @@ consider_state_set = 1; % whether to consider a compact set for the states when 
 % limits for states
 p_lim = pi/4;
 pd_lim = pi/3;
-vx_lim = 1.5;
+vx_lim = 1.0;
 vz_lim = 1.0;
 state_set.p_lim = p_lim;
 state_set.pd_lim = pd_lim;
@@ -44,10 +43,10 @@ state_set.vz_lim = vz_lim;
 state_set.box_lim = [p_lim^2-x(3)^2; vx_lim^2-x(4)^2; pd_lim^2-x(6)^2; vz_lim^2-x(5)^2]; % W_states to the front
 
 % limits for uncertainty parameters
-a1_lim = 1.0;
-a2_lim = 0.6;
-a3_lim = 0.5;
-a4_lim = 0.2;
+a1_lim = 0.8;
+a2_lim = 0.5;
+a3_lim = 0.8;
+a4_lim = 0.5;
 state_set.a1_lim = a1_lim;
 state_set.a2_lim = a2_lim;
 state_set.a3_lim = a3_lim;
@@ -77,7 +76,7 @@ elseif na == 3
     W_states = [x(Wstates_index); a]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
 elseif na == 4
-    W_states = [x(Wstates_index); a(1:3)]; % extend W_states to incorporate a
+    W_states = [x(Wstates_index); a([1,2,3])]; % extend W_states to incorporate a
     v_W = monolist(W_states, 3); % monomials of W_states up to some degree
     %v_W = kron(monolist(x(Wstates_index), 3), monolist(a(1:3), 2));
 end
@@ -179,7 +178,7 @@ matlabFunction(dW_dvx,'File',['na',num2str(na),'/dW_dvx'],'Vars',{x,a});
 dW_dphi = matlabFunction(dW_dphi,'Vars',{x,a});
 dW_dvx = matlabFunction(dW_dvx,'Vars',{x,a});
 %
-dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a) + (i==4) * dW_dvx(x,a);
+dW_dxi_fcn = @(i,x,a) (i==3) * dW_dphi(x,a);% + (i==4) * dW_dvx(x,a);
 dW_dxi_fcn_str = func2str(dW_dxi_fcn);
 dW_dxi_fcn_str = strcat('function dW_dxi = dW_dxi_fcn(i,x,a)\n', 'dW_dxi = ', dW_dxi_fcn_str(9:end), ';');
 fid = fopen(['na',num2str(na),'/dW_dxi_fcn.m'],'w');
